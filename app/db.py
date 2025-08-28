@@ -5,24 +5,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
 # Dynamic schemas
-def create_log_model(schema_name: str):
-    class Log(Base):
-        __tablename__ = "raws"
-        __table_args__ = {"schema": schema_name}
-
-        id = Column(Integer, primary_key=True)
-        name = Column(String)
-        data = Column(JSONB)
-        created_at = Column(DateTime, server_default=func.now())
-    return Log
-
-# ตัวอย่าง schema testing
-class TestingUser(Base):
-    __tablename__ = "users"
-    __table_args__ = {"schema": "testing"}
-    id = Column(Integer, primary_key=True)
-    email = Column(String)
-    username = Column(String)
 
 # ตัวอย่าง session_logs สำหรับ software ต่างๆ
 class NXSession(Base):
