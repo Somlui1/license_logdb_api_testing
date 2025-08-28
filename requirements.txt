@@ -9,4 +9,3 @@ pybase64
 sqlalchemy
 datetime
 uvicorn[standard]
-decimal
