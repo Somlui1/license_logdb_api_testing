@@ -9,8 +9,6 @@ class LicenseInput(BaseModel):
     hostname: str   # ใช้เป็น key เลือก model
     data: List[Any]
 
-
-
 @app.post("/testing/")
 async def get_payload_dynamic(payload: LicenseInput):
     # ✅ ดึง class โดยตรงจากชื่อ (เช่น "nx")
