@@ -1,9 +1,9 @@
-
 services:
   my-fastapi:
     build: .
     ports:
       - "8181:80"
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+    volumes:
+      - ./app:/app
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
     restart: unless-stopped
- 
