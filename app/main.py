@@ -35,12 +35,6 @@ async def create_item(item: Item):
     return item.model_dump()  # Pydantic v2
 
 # Dynamic payload handler
-@app.post("/logs/{log_type}/")
+@app.post("/logs/")
 async def get_payload_dynamic(log_type: str, payload: Any = Body(...)):
-    import db
-    cls = getattr(db, log_type, None)
-    if cls is None:
-        return {"error": f"{log_type} model not found in db.py"}
-    # สร้าง instance จาก payload
-    obj = cls(**payload)
-    return {"message": "Payload accepted", "data": payload}
+    return {payload}
