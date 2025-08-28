@@ -8,4 +8,4 @@ app = FastAPI()
 # Dynamic payload handler
 @app.post("/testing/")
 async def get_payload_dynamic(payload: Any = Body(...)):
-    return {payload}
+    return {"received_payload": payload}
