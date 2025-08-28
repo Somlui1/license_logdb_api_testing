@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Any, List
+import valid
 
 app = FastAPI()
 
@@ -9,9 +10,6 @@ class LicenseInput(BaseModel):
     hostname: str   # ใช้เป็น key เลือก model
     data: List[Any]
 
-class nx(BaseModel):
-    hostname: str
-    module: str
 
 @app.post("/testing/")
 async def get_payload_dynamic(payload: LicenseInput):
@@ -30,3 +28,4 @@ async def get_payload_dynamic(payload: LicenseInput):
         "hostname": payload.hostname,
         "parsed_data": [d.dict() for d in parsed_data]
     }
+
