@@ -14,7 +14,7 @@ class LicenseInput(BaseModel):
 @app.post("/testing/")
 async def get_payload_dynamic(payload: LicenseInput):
     # ✅ ดึง class โดยตรงจากชื่อ (เช่น "nx")
-    cls = globals().get(payload.hostname)
+    cls = getattr(valid, payload.hostname, None)
     if not cls:
         return {"error": f"Model '{payload.hostname}' not found"}
 
