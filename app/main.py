@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Any, List
-
+import valid # Import models from valid.py
 app = FastAPI()
 
 class LicenseInput(BaseModel):
@@ -9,14 +9,12 @@ class LicenseInput(BaseModel):
     hostname: str   # ใช้เป็น key เลือก model
     data: List[Any]
 
-class nx(BaseModel):
-    hostname: str
-    module: str
+
 
 @app.post("/testing/")
 async def get_payload_dynamic(payload: LicenseInput):
     # ✅ ดึง class โดยตรงจากชื่อ (เช่น "nx")
-    cls = globals().get(payload.hostname)
+    cls = getattr(valid, payload.hostname, None)
     if not cls:
         return {"error": f"Model '{payload.hostname}' not found"}
 
