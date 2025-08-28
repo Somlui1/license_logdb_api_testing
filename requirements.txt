@@ -7,3 +7,5 @@ pybase64
 #mysql-connector-python
 #asyncpg
 sqlalchemy
+datetime
+uvicorn[standard]
