@@ -1,22 +1,32 @@
-from fastapi import FastAPI, Body
+from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Any
-from fastapi.encoders import jsonable_encoder
-from typing import List
+from typing import Any, List
 
 app = FastAPI()
 
-class data(BaseModel):
-    username: str
-    email: str
+class LicenseInput(BaseModel):
+    ip: int
+    hostname: str   # ใช้เป็น key เลือก model
+    data: List[Any]
 
-class license_input(BaseModel):
-    ip : int
+class nx(BaseModel):
     hostname: str
-    data : List[data] 
+    module: str
 
-# Dynamic payload handler
 @app.post("/testing/")
-async def get_payload_dynamic(payload : license_input):
-    payload = jsonable_encoder(payload)
-    return payload
+async def get_payload_dynamic(payload: LicenseInput):
+    # ✅ ดึง class โดยตรงจากชื่อ (เช่น "nx")
+    cls = globals().get(payload.hostname)
+    if not cls:
+        return {"error": f"Model '{payload.hostname}' not found"}
+
+    try:
+        parsed_data = [cls(**item) for item in payload.data]
+    except Exception as e:
+        return {"error": str(e)}
+
+    return {
+        "ip": payload.ip,
+        "hostname": payload.hostname,
+        "parsed_data": [d.dict() for d in parsed_data]
+    }
