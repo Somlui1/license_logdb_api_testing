@@ -1,0 +1,14 @@
+
+services:
+  my-fastapi:
+    build: .
+    ports:
+      - "7979:7979"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7979"]
+    restart: unless-stopped
+    networks:
+      - postgresql_default
+
+networks:
+  postgresql_default:
+    external: true
