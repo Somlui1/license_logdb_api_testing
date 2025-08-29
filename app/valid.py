@@ -1,20 +1,22 @@
 from pydantic import BaseModel
-from datetime import date, time, datetime
-from decimal import Decimal
 from typing import Optional, Any
+from datetime import datetime, date, time
+from decimal import Decimal
 
-# Dynamic log model
+
 class logbase(BaseModel):
     id: Optional[int]
     name: Optional[str]
     data: Optional[Any]
     created_at: Optional[datetime]
 
+
 # สำหรับ testing.users
 class lestingUserModel(BaseModel):
     id: Optional[int]
     email: Optional[str]
     username: Optional[str]
+
 
 # NX session_logs
 class nx(BaseModel):
@@ -27,6 +29,7 @@ class nx(BaseModel):
     hostname: Optional[str]
     module: Optional[str]
     username: Optional[str]
+
 
 # Autoform session_logs
 class autofrom(BaseModel):
@@ -44,6 +47,7 @@ class autofrom(BaseModel):
     module: Optional[str]
     username: Optional[str]
     version: Optional[str]
+
 
 # Solidworks session_logs
 class solidwork(BaseModel):
