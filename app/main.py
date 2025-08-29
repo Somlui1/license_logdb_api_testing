@@ -6,13 +6,13 @@ app = FastAPI()
 
 class LicenseInput(BaseModel):
     ip: int
-    hostname: str   # ใช้เป็น key เลือก model
+    product: str   # ใช้เป็น key เลือก model
     data: List[Any]
 
 @app.post("/testing/")
 async def get_payload_dynamic(payload: LicenseInput):
     # ✅ ดึง class โดยตรงจากชื่อ (เช่น "nx")
-    cls = getattr(valid, payload.hostname, None)
+    cls = getattr(valid, payload.product, None)
     #cls = None
     if not cls:
         return {"error": f"Model '{payload.hostname}' not found"}
@@ -24,6 +24,6 @@ async def get_payload_dynamic(payload: LicenseInput):
 
     return {
         "ip": payload.ip,
-        "hostname": payload.hostname,
+        "product": payload.hostname,
         "parsed_data": [d.dict() for d in parsed_data]
     }
