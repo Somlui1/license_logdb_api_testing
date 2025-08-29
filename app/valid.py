@@ -1,72 +1,59 @@
 from pydantic import BaseModel
-from typing import Optional, Any
-from datetime import datetime, date, time
+from datetime import date, time, datetime
 from decimal import Decimal
+from typing import Optional, Any
+
+# Dynamic log model
 
 class logbase(BaseModel):
-    id: Optional[int] = None
-    name: Optional[str] = None
-    data: Optional[Any] = None
-    created_at: Optional[datetime] = None
+    id: Optional[int]
+    name: Optional[str]
+    data: Optional[Any]
+    created_at: Optional[datetime]
 
-    class Config:
-        extra = "ignore"
-
-
+# สำหรับ testing.users
 class lestingUserModel(BaseModel):
-    id: Optional[int] = None
-    email: Optional[str] = None
-    username: Optional[str] = None
+    id: Optional[int]
+    email: Optional[str]
+    username: Optional[str]
 
-    class Config:
-        extra = "ignore"
-
-
+# NX session_logs
 class nx(BaseModel):
-    id: Optional[int] = None
-    start_date: Optional[date] = None
-    start_time: Optional[time] = None
-    end_date: Optional[date] = None
-    end_time: Optional[time] = None
-    duration_minutes: Optional[Decimal] = None
-    hostname: Optional[str] = None
-    module: Optional[str] = None
-    username: Optional[str] = None
+    id: Optional[int]
+    start_date: Optional[date]
+    start_time: Optional[time]
+    end_date: Optional[date]
+    end_time: Optional[time]
+    duration_minutes: Optional[Decimal]
+    hostname: Optional[str]
+    module: Optional[str]
+    username: Optional[str]
 
-    class Config:
-        extra = "ignore"
+# Autoform session_logs
+class autofrom(BaseModel):
+    id: Optional[int]
+    start_date: Optional[date]
+    start_time: Optional[time]
+    start_hours: Optional[int]
+    start_action: Optional[str]
+    end_date: Optional[date]
+    end_time: Optional[time]
+    end_hours: Optional[int]
+    end_action: Optional[str]
+    duration_minutes: Optional[Decimal]
+    host: Optional[str]
+    module: Optional[str]
+    username: Optional[str]
+    version: Optional[str]
 
-
-class autofrom(BaseModel): 
-    id: Optional[int] = None
-    start_date: Optional[date] = None
-    start_time: Optional[time] = None
-    start_hours: Optional[int] = None
-    start_action: Optional[str] = None
-    end_date: Optional[date] = None
-    end_time: Optional[time] = None
-    end_hours: Optional[int] = None
-    end_action: Optional[str] = None
-    duration_minutes: Optional[Decimal] = None
-    host: Optional[str] = None
-    module: Optional[str] = None
-    username: Optional[str] = None
-    version: Optional[str] = None
-
-    class Config:
-        extra = "ignore"
-
-
-class solidwork(BaseModel): 
-    id: Optional[int] = None
-    start_date: Optional[date] = None
-    start_time: Optional[time] = None
-    end_date: Optional[date] = None
-    end_time: Optional[time] = None
-    duration_minutes: Optional[Decimal] = None
-    feature: Optional[str] = None
-    username: Optional[str] = None
-    computer: Optional[str] = None
-
-    class Config:
-        extra = "ignore"
+# Solidworks session_logs
+class solidwork(BaseModel):
+    id: Optional[int]
+    start_date: Optional[date]
+    start_time: Optional[time]
+    end_date: Optional[date]
+    end_time: Optional[time]
+    duration_minutes: Optional[Decimal]
+    feature: Optional[str]
+    username: Optional[str]
+    computer: Optional[str]
