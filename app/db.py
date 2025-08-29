@@ -11,7 +11,7 @@ def greet(sqlalchemy_engine_url):
     with engine.begin() as conn:
         for schema_name in schemas:
             conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
-
+    conn.commit()       
     #====================================
     # Define tables
 
