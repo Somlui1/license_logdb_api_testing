@@ -27,8 +27,7 @@ class nx(BaseModel):
     duration_minutes: Optional[Decimal]
     hostname: Optional[str]
     module: Optional[str]
-    username: Optional[str]
-
+    username: Optional[str] = None
 # Autoform session_logs
 class autofrom(BaseModel):
     id: Optional[int]
