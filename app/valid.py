@@ -1,65 +1,62 @@
-
+from pydantic import BaseModel
+from typing import Optional, Any
 from datetime import datetime, date, time
 from decimal import Decimal
-from typing import Any
 
-class LogBase:
-    id: int
-    name: str
-    data: Any
-    created_at: datetime
+
+class logbase(BaseModel):
+    id: Optional[int]
+    name: Optional[str]
+    data: Optional[Any]
+    created_at: Optional[datetime]
 
 
 # สำหรับ testing.users
-
-class LestingUserModel:
-    id: int
-    email: str
-    username: str
+class lestingUserModel(BaseModel):
+    id: Optional[int]
+    email: Optional[str]
+    username: Optional[str]
 
 
 # NX session_logs
-
-class NX:
-    id: int
-    start_date: date
-    start_time: time
-    end_date: date
-    end_time: time
-    duration_minutes: Decimal
-    hostname: str
-    module: str
-    username: str
+class nx(BaseModel):
+    id: Optional[int]
+    start_date: Optional[date]
+    start_time: Optional[time]
+    end_date: Optional[date]
+    end_time: Optional[time]
+    duration_minutes: Optional[Decimal]
+    hostname: Optional[str]
+    module: Optional[str]
+    username: Optional[str]
 
 
 # Autoform session_logs
-
-class AutoForm:
-    id: int
-    start_date: date
-    start_time: time
-    start_hours: int
-    start_action: str
-    end_date: date
-    end_time: time
-    end_hours: int
-    end_action: str
-    duration_minutes: Decimal
-    host: str
-    module: str
-    username: str
-    version: str
+class autofrom(BaseModel):
+    id: Optional[int]
+    start_date: Optional[date]
+    start_time: Optional[time]
+    start_hours: Optional[int]
+    start_action: Optional[str]
+    end_date: Optional[date]
+    end_time: Optional[time]
+    end_hours: Optional[int]
+    end_action: Optional[str]
+    duration_minutes: Optional[Decimal]
+    host: Optional[str]
+    module: Optional[str]
+    username: Optional[str]
+    version: Optional[str]
 
 
 # Solidworks session_logs
-
-class SolidWork:
-    id: int
-    start_date: date
-    start_time: time
-    end_date: date
-    end_time: time
-    duration_minutes: Decimal
-    feature: str
-    username: str
-    computer: str
+class solidwork(BaseModel):
+    id: Optional[int]
+    start_date: Optional[date]
+    start_time: Optional[time]
+    end_date: Optional[date]
+    end_time: Optional[time]
+    duration_minutes: Optional[Decimal]
+    feature: Optional[str]
+    username: Optional[str]
+    computer: Optional[str]

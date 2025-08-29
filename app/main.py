@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Any, List
-import valid # Import models from valid.py
+from app import valid # Import models from valid.py
 app = FastAPI()
 
 class LicenseInput(BaseModel):
