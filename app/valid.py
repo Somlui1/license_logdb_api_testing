@@ -9,6 +9,8 @@ class logbase(BaseModel):
     name: Optional[str]
     data: Optional[Any]
     created_at: Optional[datetime]
+    class Config:
+        extra = "ignore"
 
 
 # สำหรับ testing.users
@@ -16,7 +18,8 @@ class lestingUserModel(BaseModel):
     id: Optional[int]
     email: Optional[str]
     username: Optional[str]
-
+    class Config:
+        extra = "ignore"
 
 # NX session_logs
 class nx(BaseModel):
@@ -29,7 +32,8 @@ class nx(BaseModel):
     hostname: Optional[str]
     module: Optional[str]
     username: Optional[str]
-
+    class Config:
+        extra = "ignore"
 
 # Autoform session_logs
 class autofrom(BaseModel):
@@ -47,8 +51,8 @@ class autofrom(BaseModel):
     module: Optional[str]
     username: Optional[str]
     version: Optional[str]
-
-
+    class Config:
+        extra = "ignore"
 # Solidworks session_logs
 class solidwork(BaseModel):
     id: Optional[int]
@@ -60,3 +64,5 @@ class solidwork(BaseModel):
     feature: Optional[str]
     username: Optional[str]
     computer: Optional[str]
+    class Config:
+        extra = "ignore"
