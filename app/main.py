@@ -37,9 +37,9 @@ async def get_payload_dynamic(payload: LicenseInput):
     # ดึง Pydantic model และ ORM class
     ver = getattr(valid, payload.product, None)   # Pydantic model
     orm_class = getattr(db, payload.product, None)  # ORM class
-    if not ver or not orm_class:
+    if not ver :
         return {"error": f"Model '{payload.product}' not found"}
-    if not orm_class:
+    if not orm_class :
         return {"error": f"ORM '{payload.product}' not found"}
     try:
         # 1) validate ข้อมูลด้วย Pydantic
