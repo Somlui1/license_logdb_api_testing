@@ -3,11 +3,8 @@ from pydantic import BaseModel
 from typing import Any, List
 from app import valid # Import models from valid.py
 from app import db
-from sqlalchemy import Column, Integer, String, Date, Time, Numeric, DateTime, create_engine, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.sql import func
-from faker import Faker
 from sqlalchemy import create_engine       # สร้าง connection engine
 from sqlalchemy.orm import sessionmaker    # สร้าง session สำหรับ insert/query
 
@@ -59,5 +56,5 @@ async def get_payload_dynamic(payload: LicenseInput):
     return {
         "ip": payload.ip,
         "product": payload.product,
-        "parsed_data": [d.dict() for d in validated]
+        "parsed_data": validated
     }

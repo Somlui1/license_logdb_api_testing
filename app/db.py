@@ -1,21 +1,12 @@
 from sqlalchemy import Column, Integer, String, DateTime, Date, Time, Numeric, create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import JSONB
 
 Base = declarative_base()
 schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
 
-def greet(sqlalchemy_engine_url):
-    engine = create_engine(sqlalchemy_engine_url)
-
-    # สร้าง schemas
-    with engine.begin() as conn:
-        for schema_name in schemas:
-            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
-    conn.commit()       
-    #====================================
-    # Define tables
-
-    class nx(Base):
+class nx(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "nx"}
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -28,7 +19,7 @@ def greet(sqlalchemy_engine_url):
         module = Column(String)
         username = Column(String)
 
-    class autoform(Base):
+class autoform(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "autoform"}
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -46,7 +37,7 @@ def greet(sqlalchemy_engine_url):
         username = Column(String)
         version = Column(String)
 
-    class solidworks(Base):
+class solidworks(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "solidworks"}
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -59,5 +50,28 @@ def greet(sqlalchemy_engine_url):
         username = Column(String)
         computer = Column(String)
 
+
+def create_raw_logs_table(schema_name):
+    class RawLogs(Base):
+        __tablename__ = "raw_logs"
+        __table_args__ = {"schema": schema_name}
+        id = Column(Integer, primary_key=True, autoincrement=True)
+        created_at = Column(DateTime(timezone=True), server_default=func.now())
+        raw = Column(JSONB)   # ถ้า PostgreSQL → JSONB, ถ้า MySQL → JSON
+    return RawLogs
+
+
+def greet(sqlalchemy_engine_url):
+    engine = create_engine(sqlalchemy_engine_url)
+
+    # สร้าง schemas
+    with engine.begin() as conn:
+        for schema_name in schemas:
+            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
+            create_raw_logs_table(schema_name)     
+    #====================================
+    # Define tables
+
+    
     # สร้างทุก table
     Base.metadata.create_all(engine)
