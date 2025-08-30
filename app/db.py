@@ -15,7 +15,7 @@ def greet(sqlalchemy_engine_url):
     #====================================
     # Define tables
 
-    class Nx(Base):
+    class nx(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "nx"}
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -28,7 +28,7 @@ def greet(sqlalchemy_engine_url):
         module = Column(String)
         username = Column(String)
 
-    class Autoform(Base):
+    class autoform(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "autoform"}
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -46,7 +46,7 @@ def greet(sqlalchemy_engine_url):
         username = Column(String)
         version = Column(String)
 
-    class Solidworks(Base):
+    class solidworks(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "solidworks"}
         id = Column(Integer, primary_key=True, autoincrement=True)
