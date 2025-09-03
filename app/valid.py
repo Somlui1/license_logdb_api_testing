@@ -34,7 +34,7 @@ class nx(BaseModel):
         extra = "ignore"
 
 # Autoform session_logs
-class autofrom(BaseModel):
+class autoform(BaseModel):
     start_date: Optional[date] = None
     start_time: Optional[time] = None
     start_hours: Optional[int] = None

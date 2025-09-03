@@ -1,8 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, Date, Time, Numeric, create_engine, text
+from sqlalchemy import UUID, Column, Integer, String, DateTime, Date, Time, Numeric, create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
-
+import uuid
 Base = declarative_base()
 schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
 
@@ -18,10 +18,13 @@ class nx(Base):
         hostname = Column(String)
         module = Column(String)
         username = Column(String)
+        batch_id = Column(UUID(as_uuid=True), nullable=False)
+        created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class autoform(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "autoform"}
+        
         id = Column(Integer, primary_key=True, autoincrement=True)
         start_date = Column(Date)
         start_time = Column(Time)
@@ -36,8 +39,10 @@ class autoform(Base):
         module = Column(String)
         username = Column(String)
         version = Column(String)
+        batch_id = Column(UUID(as_uuid=True), nullable=False)
+        created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class solidworks(Base):
+class solidwork(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "solidworks"}
         id = Column(Integer, primary_key=True, autoincrement=True)
@@ -49,7 +54,8 @@ class solidworks(Base):
         feature = Column(String)
         username = Column(String)
         computer = Column(String)
-
+        batch_id = Column(UUID(as_uuid=True), nullable=False)
+        created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 def create_raw_logs_table(schema_name):
     class RawLogs(Base):
@@ -59,7 +65,6 @@ def create_raw_logs_table(schema_name):
         created_at = Column(DateTime(timezone=True), server_default=func.now())
         raw = Column(JSONB)   # ถ้า PostgreSQL → JSONB, ถ้า MySQL → JSON
     return RawLogs
-
 
 def greet(sqlalchemy_engine_url):
     engine = create_engine(sqlalchemy_engine_url)
@@ -75,3 +80,5 @@ def greet(sqlalchemy_engine_url):
     
     # สร้างทุก table
     Base.metadata.create_all(engine)
+
+
