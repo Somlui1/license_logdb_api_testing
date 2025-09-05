@@ -1,9 +1,15 @@
 from pydantic import BaseModel
-from typing import Optional, Any
+from typing import Optional, Any, List
 from datetime import date, time, datetime
 from decimal import Decimal
+from pydantic import BaseModel
 
 # Dynamic log model
+class LicenseInput(BaseModel):
+    ip: int
+    product: str   # ใช้เป็น key เลือก model
+    data: List[Any]
+
 class logbase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
@@ -20,6 +26,24 @@ class  lestingUserModel(BaseModel):
     class Config:
         extra = "ignore"
 
+class autodesk(BaseModel):
+    start_date: Optional[date] = None
+    start_time: Optional[date] = None
+    start_hours: Optional[int] = None
+    start_action: Optional[str] = None
+    end_date: Optional[date] = None
+    end_time: Optional[date] = None
+    end_hours: Optional[int] = None
+    end_action: Optional[str] = None
+    duration_minutes: Optional[Decimal] = None
+    host: Optional[str] = None
+    module: Optional[str] = None
+    username: Optional[str] = None
+    version: Optional[str] = None
+    batch_id: Optional[str] = None
+    class Config:
+        extra = "ignore"
+
 # NX session_logs
 class nx(BaseModel):
     start_date: Optional[date] = None
@@ -30,6 +54,7 @@ class nx(BaseModel):
     hostname: Optional[str] = None
     module: Optional[str] = None
     username: Optional[str] = None
+    batch_id: Optional[str]
     class Config:
         extra = "ignore"
 
@@ -48,6 +73,7 @@ class autoform(BaseModel):
     module: Optional[str] = None
     username: Optional[str] = None
     version: Optional[str] = None
+    batch_id: Optional[str] = None
     class Config:
         extra = "ignore"
 
@@ -61,5 +87,9 @@ class solidwork(BaseModel):
     feature: Optional[str] = None
     username: Optional[str] = None
     computer: Optional[str] = None
+    batch_id: Optional[str]
     class Config:
         extra = "ignore"
+
+
+
