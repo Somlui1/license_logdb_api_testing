@@ -14,13 +14,10 @@ db.greet(engine_url)
 engine = create_engine(engine_url)
 Base = declarative_base()
 Base.metadata.create_all(engine)
-
 #insert data to database
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 #FastAPI app
 app = FastAPI()
-
 
 def chunked(iterable, size):
       for i in range(0, len(iterable), size):
@@ -37,35 +34,38 @@ async def get_payload_dynamic(payload: valid.LicenseInput):
         return {"error": f"ORM '{payload.product}' not found"}
     try:
         # 1) validate ข้อมูลด้วย Pydantic
-#        validated = [ver(**item) for item in payload.data]
-#       
-#        # 2) แปลงเป็น ORM objects
-#        orm_objects = [orm_class(**item.dict()) for item in validated]
+        validated = [ver(**item) for item in payload.data]
+       
+        # 2) แปลงเป็น ORM objects
+        #orm_objects = [orm_class(**item.dict()) for item in validated]
        
         #for item in payload.data:
         #    item['batch_id'] = share_uuid
         share_uuid = uuid.uuid4()
-        RawLogs = db.raw_logs_table(payload.product)  # ✅ ชื่อควรสื่อว่าเป็น class
-        log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)  # ✅ ใช้ชื่อเดียวกัน
-       
+        
+        #RawLogs = db.raw_logs_table(payload.product)
         validated = [ver(**item) for item in payload.data]
         dict_objects = []
         for item in validated:
             d = item.dict()
             d['batch_id'] = share_uuid
             dict_objects.append(d)
-
-        
-        # 3) insert batch 100 record
-        #for batch in chunked(orm_objects, 400):
-        for batch in chunked(dict_objects, 600):
-             with Session() as session:
-                stmt = insert(orm_class).values(batch)   # Core bulk insert
+ 
+        with Session() as session:
+     
+            for batch in chunked(dict_objects, 600):
+                stmt = insert(orm_class).values(batch)
                 session.execute(stmt)
-                session.add(log_entry)
+ 
+            session.commit()  # commit ทั้งหมดใน transaction เดียวกัน
+ 
+        RawLogs = db.raw_logs_table(payload.product)
+        log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
 
-                session.commit()
-                
+        with Session() as session:
+            session.add(log_entry)
+            session.commit()
+
 # เพิ่มเข้า DB
                        # commit ทีละ batch
     except Exception as e:
@@ -76,3 +76,5 @@ async def get_payload_dynamic(payload: valid.LicenseInput):
         "product": payload.product,
         "parsed_data": validated
     }
+
+@app.get("/testing/")

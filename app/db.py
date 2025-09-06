@@ -39,6 +39,7 @@ class nx(Base):
         hostname = Column(String)
         module = Column(String)
         username = Column(String)
+        
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -81,8 +82,8 @@ class solidwork(Base):
 def raw_logs_table(schema_name: str):
     class RawLogs(Base):
         __tablename__ = "raw_logs"
-        __table_args__ = {"schema": schema_name}
-
+        __table_args__ = {"schema": schema_name,"extend_existing": True }
+        
         id = Column(Integer, primary_key=True, autoincrement=True)
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
