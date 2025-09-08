@@ -3,6 +3,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from app import valid 
+import decimal
+import datetime
+import uuid
 
 Base = declarative_base()
 schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
@@ -26,6 +29,7 @@ class autodesk(Base):
         version = Column(String)
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
+        
 
 class nx(Base):
         __tablename__ = "session_logs"
@@ -63,7 +67,22 @@ class autoform(Base):
         version = Column(String)
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
+        def to_dict(self):
+                d = self.__dict__.copy()
+                d.pop('_sa_instance_state', None)  # เอา attribute internal ออก
 
+                # แปลงข้อมูลประเภทพิเศษให้อยู่ในรูป JSON friendly
+                for key, value in d.items():
+                    if isinstance(value, (datetime.datetime, datetime.date, datetime.time)):
+                        d[key] = value.isoformat()
+                    elif isinstance(value, decimal.Decimal):
+                        d[key] = float(value)
+                    elif isinstance(value, uuid.UUID):
+                        d[key] = str(value)
+                return d
+
+
+        
 class solidwork(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "solidworks"}

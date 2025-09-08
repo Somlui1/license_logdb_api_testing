@@ -43,6 +43,7 @@ class autodesk(BaseModel):
     batch_id: Optional[str] = None
     class Config:
         extra = "ignore"
+        
 
 # NX session_logs
 class nx(BaseModel):
@@ -57,7 +58,7 @@ class nx(BaseModel):
     batch_id: Optional[str]
     class Config:
         extra = "ignore"
-
+    
 # Autoform session_logs
 class autoform(BaseModel):
     start_date: Optional[date] = None
@@ -76,7 +77,7 @@ class autoform(BaseModel):
     batch_id: Optional[str] = None
     class Config:
         extra = "ignore"
-
+    
 # Solidworks session_logs
 class solidwork(BaseModel):
     start_date: Optional[date] = None
@@ -90,6 +91,6 @@ class solidwork(BaseModel):
     batch_id: Optional[str]
     class Config:
         extra = "ignore"
-
+    
 
 

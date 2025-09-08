@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI ,HTTPException
 from sqlalchemy import insert
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -77,4 +77,16 @@ async def get_payload_dynamic(payload: valid.LicenseInput):
         "parsed_data": validated
     }
 
-@app.get("/testing/")
+@app.get("/logs/{product}/")
+def read_logs(product: str):
+    ver = getattr(db, product, None)   # Pydantic model
+    if not ver:
+        raise HTTPException(status_code=404, detail=f"ORM '{product}' not found")
+
+    with Session() as session:
+        results = session.query(ver).limit(100000).all()
+        # Convert ORM to dict for JSON serialization
+
+        
+        return results
+        #print([obj.__dict__ for obj in results])
