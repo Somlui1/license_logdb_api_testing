@@ -2,7 +2,7 @@ from sqlalchemy import UUID, Column, Integer, String, DateTime, Date, Time, Nume
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
-from app import valid 
+from app import validate 
 import decimal
 import datetime
 import uuid
@@ -10,27 +10,27 @@ import uuid
 Base = declarative_base()
 schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
 
-class autodesk(Base):
-        __tablename__ = "session_logs" # ตั้งชื่อ table ตามต้องการ
-        __table_args__ = {"schema": "autodesk"}
-        id = Column(Integer, primary_key=True)
-        start_date = Column(Date)
-        start_time = Column(Date)
-        start_hours = Column(Integer)
-        start_action = Column(String)
-        end_date = Column(Date)
-        end_time = Column(Date)
-        end_hours = Column(Integer)
-        end_action = Column(String)
-        duration_minutes = Column(Numeric)
-        host = Column(String)
-        module = Column(String)
-        username = Column(String)
-        version = Column(String)
-        batch_id = Column(UUID, nullable=True)
-        created_at = Column(DateTime(timezone=True), server_default=func.now())
-        
-
+#class autodesk(Base):
+#        __tablename__ = "session_logs" # ตั้งชื่อ table ตามต้องการ
+#        __table_args__ = {"schema": "autodesk"}
+#        id = Column(Integer, primary_key=True)
+#        start_date = Column(Date)
+#        start_time = Column(Date)
+#        start_hours = Column(Integer)
+#        start_action = Column(String)
+#        end_date = Column(Date)
+#        end_time = Column(Date)
+#        end_hours = Column(Integer)
+#        end_action = Column(String)
+#        duration_minutes = Column(Numeric)
+#        host = Column(String)
+#        module = Column(String)
+#        username = Column(String)
+#        version = Column(String)
+#        batch_id = Column(UUID, nullable=True)
+#        created_at = Column(DateTime(timezone=True), server_default=func.now())
+#        
+#
 class nx(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "nx"}
@@ -47,26 +47,47 @@ class nx(Base):
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
+
+#
+#
+#     
+#class solidwork(Base):
+#        __tablename__ = "session_logs"
+#        __table_args__ = {"schema": "solidworks"}
+#        id = Column(Integer, primary_key=True, autoincrement=True)
+#        start_date = Column(Date)
+#        start_time = Column(Time)
+#        end_date = Column(Date)
+#        end_time = Column(Time)
+#        duration_minutes = Column(Numeric(10,2))
+#        feature = Column(String)
+#        username = Column(String)
+#        computer = Column(String)
+#        batch_id = Column(UUID, nullable=True)
+#        created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class autoform(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "autoform"}
         
-        id = Column(Integer, primary_key=True, autoincrement=True)
-        start_date = Column(Date)
-        start_time = Column(Time)
-        start_hours = Column(Integer)
+        id = Column(Integer,autoincrement=True,primary_key=True)
+        start_datetime = Column(DateTime)
         start_action = Column(String)
-        end_date = Column(Date)
-        end_time = Column(Time)
-        end_hours = Column(Integer)
+        end_datetime = Column(DateTime)
         end_action = Column(String)
         duration_minutes = Column(Numeric(10,2))
         host = Column(String)
         module = Column(String)
         username = Column(String)
         version = Column(String)
+        hash    =Column( String)
+        hash_id = Column(String,unique=True)
+        #keyword = Column(String,unique=True)
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
+        
         def to_dict(self):
                 d = self.__dict__.copy()
                 d.pop('_sa_instance_state', None)  # เอา attribute internal ออก
@@ -80,23 +101,7 @@ class autoform(Base):
                     elif isinstance(value, uuid.UUID):
                         d[key] = str(value)
                 return d
-
-
         
-class solidwork(Base):
-        __tablename__ = "session_logs"
-        __table_args__ = {"schema": "solidworks"}
-        id = Column(Integer, primary_key=True, autoincrement=True)
-        start_date = Column(Date)
-        start_time = Column(Time)
-        end_date = Column(Date)
-        end_time = Column(Time)
-        duration_minutes = Column(Numeric(10,2))
-        feature = Column(String)
-        username = Column(String)
-        computer = Column(String)
-        batch_id = Column(UUID, nullable=True)
-        created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 def raw_logs_table(schema_name: str):
     class RawLogs(Base):
@@ -109,7 +114,7 @@ def raw_logs_table(schema_name: str):
         raw = Column(JSONB)  # PostgreSQL JSONB field
 
         @classmethod
-        def from_pydantic(cls, pyd_model: valid.LicenseInput, batch_id=None):
+        def from_pydantic(cls, pyd_model: validate.LicenseInput, batch_id=None):
             return cls(
                 batch_id=batch_id,
                 raw=pyd_model.data  # ✅ ตรงกับ field ของ LicenseInput

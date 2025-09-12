@@ -5,6 +5,7 @@ from decimal import Decimal
 from pydantic import BaseModel
 
 # Dynamic log model
+
 class LicenseInput(BaseModel):
     ip: int
     product: str   # ใช้เป็น key เลือก model
@@ -26,26 +27,44 @@ class  lestingUserModel(BaseModel):
     class Config:
         extra = "ignore"
 
-class autodesk(BaseModel):
-    start_date: Optional[date] = None
-    start_time: Optional[date] = None
-    start_hours: Optional[int] = None
+# Autoform session_logs
+class autoform(BaseModel):
+    start_datetime: Optional[datetime] = None
     start_action: Optional[str] = None
-    end_date: Optional[date] = None
-    end_time: Optional[date] = None
-    end_hours: Optional[int] = None
+    end_datetime: Optional[datetime] = None
     end_action: Optional[str] = None
     duration_minutes: Optional[Decimal] = None
     host: Optional[str] = None
     module: Optional[str] = None
     username: Optional[str] = None
     version: Optional[str] = None
+    hash_id: Optional[str] = None
+    hash   :Optional[str] = None
     batch_id: Optional[str] = None
     class Config:
         extra = "ignore"
-        
 
-# NX session_logs
+
+#class autodesk(BaseModel):
+#    start_date: Optional[date] = None
+#    start_time: Optional[date] = None
+#    start_hours: Optional[int] = None
+#    start_action: Optional[str] = None
+#    end_date: Optional[date] = None
+#    end_time: Optional[date] = None
+#    end_hours: Optional[int] = None
+#    end_action: Optional[str] = None
+#    duration_minutes: Optional[Decimal] = None
+#    host: Optional[str] = None
+#    module: Optional[str] = None
+#    username: Optional[str] = None
+#    version: Optional[str] = None
+#    batch_id: Optional[str] = None
+#    class Config:
+#        extra = "ignore"
+#        
+#
+## NX session_logs
 class nx(BaseModel):
     start_date: Optional[date] = None
     start_time: Optional[time] = None
@@ -55,42 +74,27 @@ class nx(BaseModel):
     hostname: Optional[str] = None
     module: Optional[str] = None
     username: Optional[str] = None
-    batch_id: Optional[str]
+    batch_id: Optional[str] = None
+    
+    #keyword: Optional[str] = None
     class Config:
         extra = "ignore"
     
-# Autoform session_logs
-class autoform(BaseModel):
-    start_date: Optional[date] = None
-    start_time: Optional[time] = None
-    start_hours: Optional[int] = None
-    start_action: Optional[str] = None
-    end_date: Optional[date] = None
-    end_time: Optional[time] = None
-    end_hours: Optional[int] = None
-    end_action: Optional[str] = None
-    duration_minutes: Optional[Decimal] = None
-    host: Optional[str] = None
-    module: Optional[str] = None
-    username: Optional[str] = None
-    version: Optional[str] = None
-    batch_id: Optional[str] = None
-    class Config:
-        extra = "ignore"
+
     
 # Solidworks session_logs
-class solidwork(BaseModel):
-    start_date: Optional[date] = None
-    start_time: Optional[time] = None
-    end_date: Optional[date] = None
-    end_time: Optional[time] = None
-    duration_minutes: Optional[Decimal] = None
-    feature: Optional[str] = None
-    username: Optional[str] = None
-    computer: Optional[str] = None
-    batch_id: Optional[str]
-    class Config:
-        extra = "ignore"
+#lass solidwork(BaseModel):
+#   start_date: Optional[date] = None
+#   start_time: Optional[time] = None
+#   end_date: Optional[date] = None
+#   end_time: Optional[time] = None
+#   duration_minutes: Optional[Decimal] = None
+#   feature: Optional[str] = None
+#   username: Optional[str] = None
+#   computer: Optional[str] = None
+#   batch_id: Optional[str]
+#   class Config:
+#       extra = "ignore"
     
 
 
