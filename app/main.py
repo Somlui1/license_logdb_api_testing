@@ -8,7 +8,9 @@ from app import validate
 from app import db
 from sqlalchemy.exc import SQLAlchemyError
 # ORM database setup
-engine_url = "postgresql://itsupport:aapico@10.10.3.215:5432/license_logsdb"
+
+
+engine_url = "postgresql://itsupport:aapico@10.10.3.215:5434/license_logsdb"
 db.greet(engine_url)
 engine = create_engine(engine_url)
 Base = declarative_base()
@@ -16,10 +18,19 @@ Base.metadata.create_all(engine)
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI()
-
 def chunked(iterable, size):
     for i in range(0, len(iterable), size):
         yield iterable[i:i + size]
+
+def bulk_upsert(session, orm_class, data: list[dict], chunk_size: int = 600):
+    for batch in chunked(data, chunk_size):
+        stmt = insert(orm_class).values(batch)
+        set_dict = {field: stmt.excluded[field] for field in orm_class.UPSERT_FIELDS}
+        stmt = stmt.on_conflict_do_update(
+            index_elements=orm_class.UPSERT_INDEX,
+            set_=set_dict
+        )
+        session.execute(stmt)
 
 @app.post("/testing/")
 async def get_payload_dynamic(payload: validate.LicenseInput):
@@ -46,36 +57,15 @@ async def get_payload_dynamic(payload: validate.LicenseInput):
             dict_objects.append(d)
 
         # Bulk upsert batch 600 row
-   
-
-
         with Session() as session:
-            try:
-                for batch in chunked(dict_objects, 600):
-                    stmt = insert(orm_class).values(batch)
-                    stmt = stmt.on_conflict_do_update(
-                        index_elements=['hash_id'],
-                        set_={
-                            "start_datetime": stmt.excluded.start_datetime,
-                            "start_action": stmt.excluded.start_action,
-                            "end_datetime": stmt.excluded.end_datetime,
-                            "end_action": stmt.excluded.end_action,
-                            "duration_minutes": stmt.excluded.duration_minutes,
-                            "host": stmt.excluded.host,
-                            "module": stmt.excluded.module,
-                            "username": stmt.excluded.username,
-                            "version": stmt.excluded.version,
-                            "batch_id": stmt.excluded.batch_id
-                        }
-                    )
-                    session.execute(stmt)
-                session.commit()
-            except SQLAlchemyError as e:
-                session.rollback()  # ย้อนกลับทุกอย่างที่ยังไม่ได้ commit
-                print("Upsert failed:", e)  # แสดง error
-                # หรือ raise ใหม่เพื่อให้ caller รับรู้
-                raise
-
+                try:
+                    bulk_upsert(session, orm_class, dict_objects, chunk_size=600)
+                    session.commit()
+                except SQLAlchemyError as e:
+                    session.rollback()
+                    
+                    
+                    raise
         # บันทึก raw logs
         RawLogs = db.raw_logs_table(payload.product)
         log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
@@ -91,6 +81,7 @@ async def get_payload_dynamic(payload: validate.LicenseInput):
         "product": payload.product,
         "parsed_data": validated
     }
+
 
 @app.get("/logs/{product}/")
 def read_logs(product: str):

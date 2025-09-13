@@ -87,6 +87,13 @@ class autoform(Base):
         #keyword = Column(String,unique=True)
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+        UPSERT_INDEX = ["hash_id"]
+        UPSERT_FIELDS = [
+        "start_datetime", "start_action", "end_datetime", "end_action",
+        "duration_minutes", "host", "module", "username", "version",
+        "batch_id"
+    ]
         
         def to_dict(self):
                 d = self.__dict__.copy()
