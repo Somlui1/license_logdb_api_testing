@@ -42,8 +42,7 @@ class nx(Base):
         duration_minutes = Column(Numeric(10,2))
         hostname = Column(String)
         module = Column(String)
-        username = Column(String)
-        
+        username = Column(String)       
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
 

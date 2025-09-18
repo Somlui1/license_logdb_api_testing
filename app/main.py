@@ -92,3 +92,53 @@ def read_logs(product: str):
         results = session.query(orm_class).limit(100000).all()
         # แปลง ORM เป็น dict สำหรับ JSON
         return [obj.__dict__ for obj in results]
+    
+
+@app.post("insert/testing/")
+async def get_payload_dynamic_v2(payload: validate.LicenseInput):
+    # ดึง Pydantic model และ ORM class
+    ver = getattr(validate, payload.product, None)   # Pydantic model
+    orm_class = getattr(db, payload.product, None)  # ORM class
+
+    if not ver:
+        return {"error": f"Model '{payload.product}' not found"}
+    if not orm_class:
+        return {"error": f"ORM '{payload.product}' not found"}
+
+    try:
+        share_uuid = uuid.uuid4()
+
+        # Validate payload
+        validated = [ver(**item) for item in payload.data]
+
+        # แปลงเป็น list ของ dict พร้อม batch_id
+        dict_objects = []
+        for item in validated:
+            d = item.dict()
+            d['batch_id'] = share_uuid
+            dict_objects.append(d)
+
+        # Bulk upsert batch 600 row
+        with Session() as session:
+            try:
+                session.bulk_save_objects([orm_class(**data) for data in dict_objects])
+                session.commit()
+            except SQLAlchemyError as e:
+                session.rollback()
+                raise
+            
+        # บันทึก raw logs
+        RawLogs = db.raw_logs_table(payload.product)
+        log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
+        with Session() as session:
+            session.add(log_entry)
+            session.commit()
+
+    except Exception as e:
+        return {"error": str(e)}
+
+    return {
+        "ip": payload.ip,
+        "product": payload.product,
+        "parsed_data": validated
+    }
