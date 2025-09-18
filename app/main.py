@@ -94,7 +94,7 @@ def read_logs(product: str):
         return [obj.__dict__ for obj in results]
     
 
-@app.post("insert/testing/")
+@app.post("/insert/testing/")
 async def get_payload_dynamic_v2(payload: validate.LicenseInput):
     # ดึง Pydantic model และ ORM class
     ver = getattr(validate, payload.product, None)   # Pydantic model
@@ -126,7 +126,7 @@ async def get_payload_dynamic_v2(payload: validate.LicenseInput):
             except SQLAlchemyError as e:
                 session.rollback()
                 raise
-            
+
         # บันทึก raw logs
         RawLogs = db.raw_logs_table(payload.product)
         log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
