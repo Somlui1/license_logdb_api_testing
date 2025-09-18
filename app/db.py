@@ -35,10 +35,10 @@ class nx(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "nx"}
         id = Column(Integer, primary_key=True, autoincrement=True)
-        start_date = Column(Date)
-        start_time = Column(Time)
-        end_date = Column(Date)
-        end_time = Column(Time)
+        start_datetime = Column(DateTime)
+        start_action = Column(String)
+        end_datetime = Column(DateTime)
+        end_action = Column(String)   
         duration_minutes = Column(Numeric(10,2))
         hostname = Column(String)
         module = Column(String)

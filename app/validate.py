@@ -66,10 +66,10 @@ class autoform(BaseModel):
 #
 ## NX session_logs
 class nx(BaseModel):
-    start_date: Optional[date] = None
-    start_time: Optional[time] = None
-    end_date: Optional[date] = None
-    end_time: Optional[time] = None
+    start_datetime: Optional[datetime] = None
+    start_action: Optional[str] = None
+    end_datetime: Optional[datetime] = None
+    end_action: Optional[str] = None
     duration_minutes: Optional[Decimal] = None
     hostname: Optional[str] = None
     module: Optional[str] = None
