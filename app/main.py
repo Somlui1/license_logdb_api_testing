@@ -31,6 +31,7 @@ def bulk_upsert(session, orm_class, data: list[dict], chunk_size: int = 600):
         )
         session.execute(stmt)
 
+
 @app.post("/testing/")
 async def get_payload_dynamic(payload: validate.LicenseInput):
     # ดึง Pydantic model และ ORM class
@@ -81,7 +82,6 @@ async def get_payload_dynamic(payload: validate.LicenseInput):
         "parsed_data": validated
     }
 
-
 @app.get("/logs/{product}/")
 def read_logs(product: str):
     orm_class = getattr(db, product, None)
@@ -93,7 +93,6 @@ def read_logs(product: str):
         # แปลง ORM เป็น dict สำหรับ JSON
         return [obj.__dict__ for obj in results]
     
-
 @app.post("/insert/testing/")
 async def get_payload_dynamic_v2(payload: validate.LicenseInput):
     # ดึง Pydantic model และ ORM class

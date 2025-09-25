@@ -29,8 +29,7 @@ schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
 #        version = Column(String)
 #        batch_id = Column(UUID, nullable=True)
 #        created_at = Column(DateTime(timezone=True), server_default=func.now())
-#        
-#
+
 class nx(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "nx"}
@@ -45,11 +44,13 @@ class nx(Base):
         username = Column(String)       
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
+        #UPSERT_INDEX = ["hash_id"]
+#        UPSERT_FIELDS = [
+#        "start_datetime", "start_action", "end_datetime", "end_action",
+#        "duration_minutes", "host", "module", "username", "version",
+#        "batch_id"
+#    ]
 
-
-
-#
-#
 #     
 #class solidwork(Base):
 #        __tablename__ = "session_logs"
@@ -65,7 +66,6 @@ class nx(Base):
 #        computer = Column(String)
 #        batch_id = Column(UUID, nullable=True)
 #        created_at = Column(DateTime(timezone=True), server_default=func.now())
-
 
 class autoform(Base):
         __tablename__ = "session_logs"

@@ -80,8 +80,6 @@ class nx(BaseModel):
     class Config:
         extra = "ignore"
     
-
-    
 # Solidworks session_logs
 #lass solidwork(BaseModel):
 #   start_date: Optional[date] = None
