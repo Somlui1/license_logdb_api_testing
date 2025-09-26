@@ -7,6 +7,11 @@ import decimal
 import datetime
 import uuid
 
+
+
+class UUIDType(PG_UUID):
+    cache_ok = True
+
 Base = declarative_base()
 schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
 
@@ -48,7 +53,7 @@ class nx(Base):
         UPSERT_INDEX = ["hash_id"]
         UPSERT_FIELDS = [
         "start_datetime", "start_action", "end_datetime", "end_action",
-        "duration_minutes", "hostname", "module", "username"
+        "duration_minutes", "hostname", "module", "username", "batch_id"
     ]
 #     
 #class solidwork(Base):
