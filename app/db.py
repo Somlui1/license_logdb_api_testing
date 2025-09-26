@@ -42,15 +42,14 @@ class nx(Base):
         hostname = Column(String)
         module = Column(String)
         username = Column(String)       
+        hash_id = Column(String,unique=True)
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
-        #UPSERT_INDEX = ["hash_id"]
-#        UPSERT_FIELDS = [
-#        "start_datetime", "start_action", "end_datetime", "end_action",
-#        "duration_minutes", "host", "module", "username", "version",
-#        "batch_id"
-#    ]
-
+        UPSERT_INDEX = ["hash_id"]
+        UPSERT_FIELDS = [
+        "start_datetime", "start_action", "end_datetime", "end_action",
+        "duration_minutes", "hostname", "module", "username"
+    ]
 #     
 #class solidwork(Base):
 #        __tablename__ = "session_logs"

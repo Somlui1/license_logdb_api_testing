@@ -9,7 +9,7 @@ from app import db
 from sqlalchemy.exc import SQLAlchemyError
 # ORM database setup
 
-engine_url = "postgresql://itsupport:aapico@10.10.3.215:5432/license_logsdb"
+engine_url = "postgresql://itsupport:aapico@10.10.3.215:5434/license_logsdb"
 db.greet(engine_url)
 engine = create_engine(engine_url)
 Base = declarative_base()

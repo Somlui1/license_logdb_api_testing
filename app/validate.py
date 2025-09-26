@@ -74,8 +74,8 @@ class nx(BaseModel):
     hostname: Optional[str] = None
     module: Optional[str] = None
     username: Optional[str] = None
+    hash_id: Optional[str] = None
     batch_id: Optional[str] = None
-    
     #keyword: Optional[str] = None
     class Config:
         extra = "ignore"
