@@ -8,10 +8,6 @@ import datetime
 import uuid
 
 
-
-class UUIDType(PG_UUID):
-    cache_ok = True
-
 Base = declarative_base()
 schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
 
