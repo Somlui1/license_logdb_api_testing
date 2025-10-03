@@ -27,6 +27,34 @@ class  lestingUserModel(BaseModel):
     class Config:
         extra = "ignore"
 
+        
+class CatiaBaseModel(BaseModel):
+    user: Optional[str] = None
+    host: Optional[str] = None
+    start_datetime: Optional[datetime] = None
+    end_datetime: Optional[datetime] = None
+    duration_min: Optional[float] = None
+    end_action: Optional[str] = None
+    product: Optional[str] = None
+    customer: Optional[str] = None
+    license_type: Optional[str] = None
+    count: Optional[int] = None
+    level: Optional[str] = None
+    hash_id: Optional[str] = None
+    batch_id: Optional[str] = None
+
+    class Config:
+        extra = "ignore"
+
+
+class AA_catia(CatiaBaseModel):
+    pass
+
+
+class AHA_catia(CatiaBaseModel):
+    pass
+
+
 # Autoform session_logs
 class autoform(BaseModel):
     start_datetime: Optional[datetime] = None
@@ -43,7 +71,6 @@ class autoform(BaseModel):
     batch_id: Optional[str] = None
     class Config:
         extra = "ignore"
-
 
 #class autodesk(BaseModel):
 #    start_date: Optional[date] = None

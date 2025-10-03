@@ -1,4 +1,4 @@
-from sqlalchemy import UUID, Column, Integer, String, DateTime, Date, Time, Numeric, create_engine, text
+from sqlalchemy import UUID, Column, Integer, String, DateTime, Date,Float, Time, Numeric, create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -7,10 +7,8 @@ import decimal
 import datetime
 import uuid
 
-
 Base = declarative_base()
 schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
-
 #class autodesk(Base):
 #        __tablename__ = "session_logs" # ตั้งชื่อ table ตามต้องการ
 #        __table_args__ = {"schema": "autodesk"}
@@ -30,6 +28,43 @@ schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
 #        version = Column(String)
 #        batch_id = Column(UUID, nullable=True)
 #        created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class CatiaBase(Base):
+    __abstract__ = True   # บอก SQLAlchemy ว่านี่คือ base class ไม่ต้องสร้าง table
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String)
+    hostname = Column(String)
+    start_action = Column(String)
+    start_datetime = Column(DateTime)
+    end_datetime = Column(DateTime)
+    duration_min = Column(Float)
+    end_action = Column(String)
+    product = Column(String)
+    customer = Column(String)
+    license_type = Column(String)
+    count = Column(Integer)
+    level = Column(String)
+    hash_id = Column(String, unique=True)
+    batch_id = Column(UUID, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    UPSERT_INDEX = ["hash_id"]
+    UPSERT_FIELDS = [
+        "username", "hostname", "start_action", "start_datetime", "end_datetime",
+        "duration_min", "end_action", "product", "customer", "license_type",
+        "count", "level", "hash_id", "batch_id"
+    ]
+
+
+class AA_catia(CatiaBase):
+    __tablename__ = "AA_session_logs"
+    __table_args__ = {"schema": "catia"}
+
+
+class AHA_catia(CatiaBase):
+    __tablename__ = "AHA_session_logs"
+    __table_args__ = {"schema": "catia"}
+
 
 class nx(Base):
         __tablename__ = "session_logs"
@@ -70,7 +105,6 @@ class nx(Base):
 class autoform(Base):
         __tablename__ = "session_logs"
         __table_args__ = {"schema": "autoform"}
-        
         id = Column(Integer,autoincrement=True,primary_key=True)
         start_datetime = Column(DateTime)
         start_action = Column(String)
