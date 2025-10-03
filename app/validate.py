@@ -42,7 +42,7 @@ class CatiaBaseModel(BaseModel):
     count: Optional[int] = None
     level: Optional[str] = None
     hash_id: Optional[str] = None
-    batch_id: Optional[str] = None
+    #batch_id: Optional[str] = None
 
     class Config:
         extra = "ignore"
@@ -66,7 +66,7 @@ class autoform(BaseModel):
     version: Optional[str] = None
     hash_id: Optional[str] = None
     hash   :Optional[str] = None
-    batch_id: Optional[str] = None
+    #batch_id: Optional[str] = None
     class Config:
         extra = "ignore"
 
@@ -100,7 +100,7 @@ class nx(BaseModel):
     module: Optional[str] = None
     username: Optional[str] = None
     hash_id: Optional[str] = None
-    batch_id: Optional[str] = None
+    #batch_id: Optional[str] = None
     #keyword: Optional[str] = None
     class Config:
         extra = "ignore"
