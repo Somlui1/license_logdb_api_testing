@@ -53,7 +53,7 @@ class CatiaBase(Base):
     UPSERT_FIELDS = [
         "username", "hostname", "start_action", "start_datetime", "end_datetime",
         "duration_min", "end_action", "product", "customer", "license_type",
-        "count", "level", "hash_id", "batch_id"
+        "count", "level", "hash_id", "batch_id","feature"
     ]
 
 
