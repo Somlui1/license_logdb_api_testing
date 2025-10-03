@@ -29,8 +29,8 @@ class  lestingUserModel(BaseModel):
 
         
 class CatiaBaseModel(BaseModel):
-    user: Optional[str] = None
-    host: Optional[str] = None
+    username: Optional[str] = None
+    hostname: Optional[str] = None
     start_datetime: Optional[datetime] = None
     end_datetime: Optional[datetime] = None
     duration_min: Optional[float] = None
