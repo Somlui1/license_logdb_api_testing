@@ -26,8 +26,7 @@ class  lestingUserModel(BaseModel):
     username: Optional[str] = None
     class Config:
         extra = "ignore"
-
-        
+    
 class CatiaBaseModel(BaseModel):
     username: Optional[str] = None
     hostname: Optional[str] = None
@@ -46,14 +45,11 @@ class CatiaBaseModel(BaseModel):
     class Config:
         extra = "ignore"
 
-
 class AA_catia(CatiaBaseModel):
     pass
 
-
 class AHA_catia(CatiaBaseModel):
     pass
-
 
 # Autoform session_logs
 class autoform(BaseModel):

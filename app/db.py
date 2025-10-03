@@ -8,7 +8,7 @@ import datetime
 import uuid
 
 Base = declarative_base()
-schemas = ["autoform", "nx", "catia", "solidworks", "autodesk", "testing"]
+schemas = ["autoform", "nx","AHA_catia","AA_catia", "solidworks", "autodesk", "testing"]
 #class autodesk(Base):
 #        __tablename__ = "session_logs" # ตั้งชื่อ table ตามต้องการ
 #        __table_args__ = {"schema": "autodesk"}
@@ -58,12 +58,12 @@ class CatiaBase(Base):
 
 class AA_catia(CatiaBase):
     __tablename__ = "AA_session_logs"
-    __table_args__ = {"schema": "catia"}
+    __table_args__ = {"schema": "AA_catia"}
 
 
 class AHA_catia(CatiaBase):
     __tablename__ = "AHA_session_logs"
-    __table_args__ = {"schema": "catia"}
+    __table_args__ = {"schema": "AHA_catia"}
 
 
 class nx(Base):
