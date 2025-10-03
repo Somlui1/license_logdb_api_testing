@@ -31,6 +31,7 @@ class CatiaBaseModel(BaseModel):
     username: Optional[str] = None
     hostname: Optional[str] = None
     start_datetime: Optional[datetime] = None
+    start_action : Optional[str] = None 
     end_datetime: Optional[datetime] = None
     duration_min: Optional[float] = None
     end_action: Optional[str] = None
