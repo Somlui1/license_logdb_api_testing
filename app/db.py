@@ -34,6 +34,7 @@ class CatiaBase(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String)
     hostname = Column(String)
+    feature = Column(String)
     start_action = Column(String)
     start_datetime = Column(DateTime)
     end_datetime = Column(DateTime)
@@ -57,12 +58,12 @@ class CatiaBase(Base):
 
 
 class AA_catia(CatiaBase):
-    __tablename__ = "AA_session_logs"
+    __tablename__ = "session_logs"
     __table_args__ = {"schema": "AA_catia"}
 
 
 class AHA_catia(CatiaBase):
-    __tablename__ = "AHA_session_logs"
+    __tablename__ = "session_logs"
     __table_args__ = {"schema": "AHA_catia"}
 
 
