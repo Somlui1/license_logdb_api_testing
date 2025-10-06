@@ -2,13 +2,23 @@ from sqlalchemy import UUID, Column, Integer, String, DateTime, Date,Float, Time
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
-from app import validate 
+from app.schema import license_log_validate 
 import decimal
 import datetime
 import uuid
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
+#Base = declarative_base()
+engine_url_license_logsdb = "postgresql://itsupport:aapico@10.10.3.215:5434/license_logsdb"
+#license_logsdb.greet(engine_url_license_logsdb)
+engine_license_logsdb = create_engine(engine_url_license_logsdb)
 Base = declarative_base()
+Session = sessionmaker(autocommit=False, autoflush=False, bind=engine_license_logsdb)
+
 schemas = ["autoform", "nx","AHA_catia","AA_catia", "solidworks", "autodesk", "testing"]
+
 #class autodesk(Base):
 #        __tablename__ = "session_logs" # ตั้งชื่อ table ตามต้องการ
 #        __table_args__ = {"schema": "autodesk"}
@@ -155,7 +165,7 @@ def raw_logs_table(schema_name: str):
         raw = Column(JSONB)  # PostgreSQL JSONB field
 
         @classmethod
-        def from_pydantic(cls, pyd_model: validate.LicenseInput, batch_id=None):
+        def from_pydantic(cls, pyd_model: license_log_validate.LicenseInput, batch_id=None):
             return cls(
                 batch_id=batch_id,
                 raw=pyd_model.data  # ✅ ตรงกับ field ของ LicenseInput
@@ -164,7 +174,6 @@ def raw_logs_table(schema_name: str):
     return RawLogs
 
 #log_entry = rawLogs.from_pydantic(pyd_model, batch_id=share_uuid)
-
 def greet(sqlalchemy_engine_url):
     engine = create_engine(sqlalchemy_engine_url)
 
@@ -179,4 +188,6 @@ def greet(sqlalchemy_engine_url):
     # สร้างทุก table
     Base.metadata.create_all(engine)
 
+greet(engine_url_license_logsdb)
+Base.metadata.create_all(engine_license_logsdb)
 
