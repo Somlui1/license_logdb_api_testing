@@ -2,19 +2,20 @@ from pydantic import BaseModel
 from typing import Optional, Any, List, Union
 from datetime import date, time, datetime
 from decimal import Decimal
-from pydantic import BaseModel
+from pydantic import BaseModel,ConfigDict, Field, IPvAnyAddress
 
 # Dynamic log model
 
-class LicenseInput(BaseModel):
-    ip: int                          # ต้องเป็นตัวเลข
-    product: str                      # ใช้เป็น key เลือก model
-    data: List[Any]                   # เป็น array ของ object / dict
-    raw: Optional[bool] = False       # default = False
-    row: Optional[List[Any]] = None   # array ของ object หรือ empty list
 
-    class Config:
-        extra = "ignore"     
+class LicenseInput(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+
+    ip: IPvAnyAddress
+    product: str
+    data: list[dict[str, Any]]        # syntax ใหม่
+    raw: bool = False                 # optional + default False → พฤติกรรมเหมือนกัน
+    row: list[dict[str, Any]] = Field(default_factory=list)
+
 
 
 class logbase(BaseModel):
