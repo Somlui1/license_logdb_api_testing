@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Union
 from datetime import date, time, datetime
 from decimal import Decimal
 from pydantic import BaseModel
@@ -10,6 +10,7 @@ class LicenseInput(BaseModel):
     ip: int
     product: str   # ใช้เป็น key เลือก model
     data: List[Any]
+    raw: Optional[bool] = None  # เพิ่ม field rows
 
 class logbase(BaseModel):
     id: Optional[int] = None

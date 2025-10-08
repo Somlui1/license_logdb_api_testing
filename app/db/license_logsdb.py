@@ -154,11 +154,10 @@ class autoform(Base):
                 return d
         
 
-def raw_logs_table(schema_name: str):
+def raw_logs_table(schema_name: str,table_name: str = "session_logs"):
     class RawLogs(Base):
-        __tablename__ = "raw_logs"
+        __tablename__ = table_name
         __table_args__ = {"schema": schema_name,"extend_existing": True }
-        
         id = Column(Integer, primary_key=True, autoincrement=True)
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -170,7 +169,6 @@ def raw_logs_table(schema_name: str):
                 batch_id=batch_id,
                 raw=pyd_model.data  # ✅ ตรงกับ field ของ LicenseInput
             )
-
     return RawLogs
 
 #log_entry = rawLogs.from_pydantic(pyd_model, batch_id=share_uuid)
@@ -179,9 +177,12 @@ def greet(sqlalchemy_engine_url):
 
     # สร้าง schemas
     with engine.begin() as conn:
-        for schema_name in schemas:
-            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
-            raw_logs_table(schema_name)     
+        for name in schemas:
+            conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{name}"'))
+            raw_logs_table(schema_name=name)
+            raw_logs_table(schema_name=name,table_name='raw_log')
+            
+
     #====================================
     # Define tables
 

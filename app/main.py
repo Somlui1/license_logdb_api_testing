@@ -69,7 +69,7 @@ async def get_payload_dynamic(payload: license_log_validate.LicenseInput):
                     
                     raise
         # บันทึก raw logs
-        RawLogs = license_logsdb.raw_logs_table(payload.product)
+        RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product)
         log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
         with Session_license_logsdb() as session:
             session.add(log_entry)
@@ -127,9 +127,10 @@ async def get_payload_dynamic_v2(payload: license_log_validate.LicenseInput):
             except SQLAlchemyError as e:
                 session.rollback()
                 raise
-
+#schema_name: str,table_name: str = "raw_logs"
         # บันทึก raw logs
-        RawLogs = license_logsdb.raw_logs_table(payload.product)
+    
+        RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product)
         log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
         with Session_license_logsdb() as session:
             session.add(log_entry)
