@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,validator
 from typing import Optional, Any, List, Union
 from datetime import date, time, datetime
 from decimal import Decimal
@@ -10,7 +10,13 @@ class LicenseInput(BaseModel):
     ip: int
     product: str   # ใช้เป็น key เลือก model
     data: List[Any]
-    raw: Optional[bool] = None  # เพิ่ม field rows
+    raw : Optional[bool] = False
+    row :dict[Any] = None   # เพิ่ม field rows
+    
+    
+    class Config:
+        extra = "ignore"
+
 
 class logbase(BaseModel):
     id: Optional[int] = None

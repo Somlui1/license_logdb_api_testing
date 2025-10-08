@@ -164,10 +164,10 @@ def raw_logs_table(schema_name: str,table_name: str = "raw_session"):
         raw = Column(JSONB)  # PostgreSQL JSONB field
 
         @classmethod
-        def from_pydantic(cls, pyd_model: license_log_validate.LicenseInput, batch_id=None):
+        def from_pydantic(cls, input: dict, batch_id=None):
             return cls(
                 batch_id=batch_id,
-                raw=pyd_model.data  # ✅ ตรงกับ field ของ LicenseInput
+                raw=input  # ✅ ตรงกับ field ของ LicenseInput
             )
     return RawLogs
 
