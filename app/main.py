@@ -70,14 +70,14 @@ async def get_payload_dynamic(payload: license_log_validate.LicenseInput):
                     raise
         # บันทึก raw logs
         RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product)
-        log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
+        log_entry = RawLogs.from_pydantic(payload.data, batch_id=share_uuid)
         with Session_license_logsdb() as session:
             session.add(log_entry)
             session.commit()
 
         if payload.raw:
             RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product,table_name='raw_logs')
-            log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
+            log_entry = RawLogs.from_pydantic(payload.row, batch_id=share_uuid)
             with Session_license_logsdb() as session:
                 session.add(log_entry)
                 session.commit()
