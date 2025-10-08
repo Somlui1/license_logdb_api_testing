@@ -11,7 +11,7 @@ class LicenseInput(BaseModel):
     product: str   # ใช้เป็น key เลือก model
     data: List[Any]
     raw : Optional[bool] = False
-    row :dict[Any] = None   # เพิ่ม field rows
+    row: Optional[Dict[str, Any]] = None  # ✅ แก้ไขตรงนี้   # เพิ่ม field rows
     
     
     class Config:
