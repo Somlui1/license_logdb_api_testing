@@ -154,7 +154,7 @@ class autoform(Base):
                 return d
         
 
-def raw_logs_table(schema_name: str,table_name: str = "session_logs"):
+def raw_logs_table(schema_name: str,table_name: str = "raw_session"):
     class RawLogs(Base):
         __tablename__ = table_name
         __table_args__ = {"schema": schema_name,"extend_existing": True }
