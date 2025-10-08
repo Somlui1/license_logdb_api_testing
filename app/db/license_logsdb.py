@@ -180,7 +180,7 @@ def greet(sqlalchemy_engine_url):
         for name in schemas:
             conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{name}"'))
             raw_logs_table(schema_name=name)
-            raw_logs_table(schema_name=name,table_name='raw_log')
+            raw_logs_table(schema_name=name,table_name='raw_logs')
             
 
     #====================================
