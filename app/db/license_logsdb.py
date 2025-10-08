@@ -167,7 +167,7 @@ def raw_logs_table(schema_name: str,table_name: str = "raw_session"):
         def from_pydantic(cls, input: list, batch_id=None):
             return cls(
                 batch_id=batch_id,
-                raw=input  # ✅ ตรงกับ field ของ LicenseInput
+                raw=input.dict()  # ✅ ตรงกับ field ของ LicenseInput
             )
     return RawLogs
 
