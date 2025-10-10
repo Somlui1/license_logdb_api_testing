@@ -11,6 +11,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
+
+
+
 #Base = declarative_base()
 engine_url_license_logsdb = "postgresql://itsupport:aapico@10.10.3.215:5434/license_logsdb"
 #license_logsdb.greet(engine_url_license_logsdb)

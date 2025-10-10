@@ -1,13 +1,14 @@
-from sqlalchemy import UUID, Column, Integer, String, DateTime, Date,Float,Boolean,Time, Numeric, create_engine, text
+from sqlalchemy import UUID, Column, Integer, String, DateTime, Date,Float, Time, Numeric, create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
-import decimal
-import datetime
-import uuid
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+from license_logsdb import chunked, bulk_upsert
+
 
 engine_url_log_server = "postgresql://itsupport:aapico@10.10.3.215:5434/server_logs"
 #license_logsdb.greet(engine_url_log_server)
@@ -39,13 +40,29 @@ class ibm_spectrum(Base):
         source_target_volume = Column(String)
         status = Column(String)
         type = Column(String) 
+        
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
-
+        
+        UPSERT_INDEX = ["id"]  # หรือ column ที่ unique จริง
+        UPSERT_FIELDS = [
+            "object_id", "consistency_group", "name", "source_target_host",
+            "source_target_pool", "source_target_storage", "source_target_tier",
+            "source_target_volume", "status", "type", "batch_id"
+        ]
+    
+        def save(self, payload: list[dict]):
+            """บันทึกข้อมูลแบบ bulk upsert"""
+            with Session() as session:
+                try:
+                    session.bulk_save_objects([self(**data) for data in payload])
+                    session.commit()
+                except SQLAlchemyError as e:
+                    session.rollback()
+                
+    
+        
 Base.metadata.create_all(engine_log_server)
-
-
-
 #class veeam_BackupJob(Base):
 #    __tablename__ = "backup_jobs"
 #    __table_args__ = {"schema": "veeam"}

@@ -117,7 +117,7 @@ async def get_payload_dynamic_v2(payload: license_log_validate.LicenseInput):
             except SQLAlchemyError as e:
                 session.rollback()
                 raise
-            
+
 #schema_name: str,table_name: str = "raw_logs"
         # บันทึก raw logs
         RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product)
@@ -160,13 +160,7 @@ async def server_logs_get_payload_dynamic(payload: server_logs_validate.server_l
             dict_objects.append(d)
 
         # Bulk upsert batch 600 row
-        with Session_log_server() as session:
-            try:
-                session.bulk_save_objects([orm_class(**data) for data in dict_objects])
-                session.commit()
-            except SQLAlchemyError as e:
-                session.rollback()
-                raise
+        await asyncio.to_thread(orm_class().save, dict_objects)
         # บันทึก raw logs
     except Exception as e:
         return {"error": str(e)}
@@ -176,3 +170,4 @@ async def server_logs_get_payload_dynamic(payload: server_logs_validate.server_l
         "product": payload.product,
         "parsed_data": validated
     }
+
