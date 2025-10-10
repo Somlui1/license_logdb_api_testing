@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-engine_url_log_server = "postgresql://itsupport:aapico@10.10.3.215:5432/server_logs"
+engine_url_log_server = "postgresql://itsupport:aapico@10.10.3.215:5434/server_logs"
 #license_logsdb.greet(engine_url_log_server)
 engine_log_server = create_engine(engine_url_log_server)
 Base = declarative_base()

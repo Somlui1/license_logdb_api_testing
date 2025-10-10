@@ -6,20 +6,13 @@ from app.schema import server_logs_validate
 from app.db import license_logsdb
 from app.db import server_logs
 from sqlalchemy.exc import SQLAlchemyError
-# ORM database setup
-#engine_url_license_logsdb = "postgresql://itsupport:aapico@10.10.3.215:5432/license_logsdb"
-#license_logsdb.greet(engine_url_license_logsdb)
-#engine_license_logsdb = create_engine(engine_url_license_logsdb)
-#Base = declarative_base()
-#Base.metadata.create_all(engine_license_logsdb)
-#Session_license_logsdb = sessionmaker(autocommit=False, autoflush=False, bind=engine_license_logsdb)
+import asyncio
 
 app = FastAPI()
 #ORM session
 Session_license_logsdb = license_logsdb.Session
 Session_log_server = server_logs.Session
 #=============================
-
 def chunked(iterable, size):
     for i in range(0, len(iterable), size):
         yield iterable[i:i + size]
@@ -58,16 +51,8 @@ async def get_payload_dynamic(payload: license_log_validate.LicenseInput):
             d['batch_id'] = share_uuid
             dict_objects.append(d)
 
-        # Bulk upsert batch 600 row
-        with Session_license_logsdb() as session:
-                try:
-                    bulk_upsert(session, orm_class, dict_objects, chunk_size=600)
-                    session.commit()
-                except SQLAlchemyError as e:
-                    session.rollback()
-                    
-                    
-                    raise
+        await asyncio.to_thread(orm_class().save, dict_objects)
+
         # บันทึก raw logs
         RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product)
         log_entry = RawLogs.from_pydantic(payload.data, batch_id=share_uuid)
@@ -81,8 +66,6 @@ async def get_payload_dynamic(payload: license_log_validate.LicenseInput):
             with Session_license_logsdb() as session:
                 session.add(log_entry)
                 session.commit()
-
-
 
     except Exception as e:
         return {"error": str(e)}
@@ -120,14 +103,12 @@ async def get_payload_dynamic_v2(payload: license_log_validate.LicenseInput):
 
         # Validate payload
         validated = [ver(**item) for item in payload.data]
-
         # แปลงเป็น list ของ dict พร้อม batch_id
         dict_objects = []
         for item in validated:
             d = item.dict()
             d['batch_id'] = share_uuid
             dict_objects.append(d)
-
         # Bulk upsert batch 600 row
         with Session_license_logsdb() as session:
             try:
@@ -136,9 +117,9 @@ async def get_payload_dynamic_v2(payload: license_log_validate.LicenseInput):
             except SQLAlchemyError as e:
                 session.rollback()
                 raise
+            
 #schema_name: str,table_name: str = "raw_logs"
         # บันทึก raw logs
-    
         RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product)
         log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
         with Session_license_logsdb() as session:
