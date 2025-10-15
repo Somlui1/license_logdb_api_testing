@@ -78,7 +78,7 @@ class veeambackupjob(Base):
         __table_args__ = {"schema": "veeam"}
         id = Column(Integer, primary_key=True, autoincrement=True)
         # ข้อมูลหลัก
-        veeamserver = Column(String, nullable=False)
+        veeamserver = Column(String)
         backupjob = Column(String)
         server = Column(String)
         starttime = Column(DateTime)       

@@ -25,7 +25,7 @@ class ibm_spectrum(BaseModel):
         extra = "ignore"
 
 class veeambackupjob(BaseModel):
-    veeamserver = Optional[str] = [str]
+    veeamserver : Optional[str] = [str]
     backupjob: Optional[str] = [str]
     server: Optional[str] = [str]
     starttime: Optional[datetime] = [datetime] 
