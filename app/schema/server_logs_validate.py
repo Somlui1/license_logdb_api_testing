@@ -23,3 +23,69 @@ class ibm_spectrum(BaseModel):
     type : Optional[str] = None 
     class Config:
         extra = "ignore"
+
+class veeambackupjob(BaseModel):
+    veeamserver = Optional[str] = [str]
+    backupjob: Optional[str] = [str]
+    server: Optional[str] = [str]
+    starttime: Optional[datetime] = [datetime] 
+    endtime: Optional[datetime] = [datetime] 
+    duration: Optional[str] = [str]
+    status: Optional[str] = [str]
+    progress: Optional[float] = None
+    info: Optional[str] = None
+    encrypted: Optional[bool] = None
+    transferedsize_byte: Optional[int] = None
+    transferedsize: Optional[float] = None
+    percents: Optional[float] = None
+    
+    # ข้อมูลเชิงตัวเลข
+    totalobjects: Optional[int] = None
+    processedsize: Optional[int] = None
+    processedusedsize: Optional[int] = None
+    readsize: Optional[int] = None
+    readedaveragesize: Optional[int] = None
+    # เวลาที่เกี่ยวข้อง
+    starttimelocal: Optional[datetime] = None
+    stoptimelocal: Optional[datetime] = None
+    starttimeutc: Optional[datetime] = None
+    stoptimeutc: Optional[datetime] = None
+    # ข้อมูลเชิง performance
+    avgspeed: Optional[int] = None
+    totalsize: Optional[int] = None
+    totalusedsize: Optional[int] = None
+    usedspaceration: Optional[float] = None
+    totalsizedelta: Optional[int] = None
+    totalusedsizedelta: Optional[int] = None
+    hash_id: Optional[str] = None
+
+
+  # backupjob
+  # server
+  # starttime
+  # endtime
+  # duration
+  # status
+  # progress
+  # info
+  # encrypted
+  # transferedsize_byte
+  # transferedsize
+  # percents
+  # totalobjects
+  # processedsize
+  # processedusedsize
+  # readsize
+  # readedaveragesize
+  # starttimelocal
+  # stoptimelocal
+  # starttimeutc
+  # stoptimeutc
+  # avgspeed
+  # totalsize
+  # totalusedsize
+  # usedspaceration
+  # totalsizedelta
+  # totalusedsizedelta
+  # hash_id
+

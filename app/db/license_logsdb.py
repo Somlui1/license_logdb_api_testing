@@ -182,10 +182,8 @@ def greet(sqlalchemy_engine_url):
             raw_logs_table(schema_name=name)
             raw_logs_table(schema_name=name,table_name='raw_logs')
             
-
     #====================================
     # Define tables
-
     # สร้างทุก table
     Base.metadata.create_all(engine)
 

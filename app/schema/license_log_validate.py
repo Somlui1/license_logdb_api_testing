@@ -5,8 +5,6 @@ from decimal import Decimal
 from pydantic import BaseModel
 
 # Dynamic log model
-
-
 class LicenseInput(BaseModel):
     ip: int                          # ต้องเป็นตัวเลข
     product: str                      # ใช้เป็น key เลือก model
@@ -16,7 +14,6 @@ class LicenseInput(BaseModel):
 
     class Config:
         extra = "ignore"     
-
 
 class logbase(BaseModel):
     id: Optional[int] = None
