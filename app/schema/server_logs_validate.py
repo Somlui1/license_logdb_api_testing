@@ -30,11 +30,11 @@ class veeambackupjob(BaseModel):
     server: Optional[str] = [str]
     starttime: Optional[datetime] = [datetime] 
     endtime: Optional[datetime] = [datetime] 
-    duration: Optional[str] = [str]
+    duration: Optional[str] =  None
     status: Optional[str] = [str]
     progress: Optional[float] = None
     info: Optional[str] = None
-    encrypted: Optional[bool] = None
+    encrypted: Optional[str] = None
     transferedsize_byte: Optional[int] = None
     transferedsize: Optional[float] = None
     percents: Optional[float] = None

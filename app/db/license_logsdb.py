@@ -12,8 +12,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 
-
-
 #Base = declarative_base()
 engine_url_license_logsdb = "postgresql://itsupport:aapico@10.10.3.215:5432/license_logsdb"
 #license_logsdb.greet(engine_url_license_logsdb)
@@ -56,14 +54,12 @@ class CatiaBase(Base):
     hash_id = Column(String, unique=True)
     batch_id = Column(UUID, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-
     UPSERT_INDEX = ["hash_id"]
     UPSERT_FIELDS = [
         "username", "hostname", "start_action", "start_datetime", "end_datetime",
         "duration_min", "end_action", "product", "customer", "license_type",
         "count", "level", "hash_id", "batch_id", "feature"
     ]
-
     def save(self, payload: list[dict]):
         """บันทึกข้อมูลแบบ bulk upsert"""
         with Session() as session:
@@ -75,7 +71,6 @@ class CatiaBase(Base):
                 session.rollback()
                 print(f"❌ Error during upsert: {e}")
 
-
 class AA_catia(CatiaBase):
     __tablename__ = "session_logs"
     __table_args__ = {"schema": "AA_catia"}
@@ -83,7 +78,6 @@ class AA_catia(CatiaBase):
 class AHA_catia(CatiaBase):
     __tablename__ = "session_logs"
     __table_args__ = {"schema": "AHA_catia"}
-
 
 class nx(Base):
         __tablename__ = "session_logs"
