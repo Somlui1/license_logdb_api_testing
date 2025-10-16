@@ -4,14 +4,14 @@ import uuid
 from app.schema import license_log_validate
 from app.schema import server_logs_validate
 from app.db import license_logsdb
-from app.db import server_logs
+from app.db import server_logsdb
 from sqlalchemy.exc import SQLAlchemyError
 import asyncio
 
 app = FastAPI()
 #ORM session
 Session_license_logsdb = license_logsdb.Session
-Session_log_server = server_logs.Session
+Session_log_server = server_logsdb.Session
 #=============================
 def chunked(iterable, size):
     for i in range(0, len(iterable), size):
@@ -139,8 +139,8 @@ async def get_payload_dynamic_v2(payload: license_log_validate.LicenseInput):
 async def server_logs_get_payload_dynamic(payload: server_logs_validate.server_logs_Input):
     # ดึง Pydantic model และ ORM class
     ver = getattr(server_logs_validate, payload.product, None)   # Pydantic model
-    orm_class = getattr(server_logs, payload.product, None)  # ORM class
-
+    orm_class = getattr(server_logsdb, payload.product, None)  # ORM class
+    
     if not ver:
         return {"error": f"Model '{payload.product}' not found"}
     if not orm_class:
@@ -148,23 +148,19 @@ async def server_logs_get_payload_dynamic(payload: server_logs_validate.server_l
 
     try:
         share_uuid = uuid.uuid4()
-
         # Validate payload
         validated = [ver(**item) for item in payload.data]
-
         # แปลงเป็น list ของ dict พร้อม batch_id
         dict_objects = []
         for item in validated:
             d = item.dict()
             d['batch_id'] = share_uuid
             dict_objects.append(d)
-
         # Bulk upsert batch 600 row
         await asyncio.to_thread(orm_class().save,dict_objects)
         # บันทึก raw logs
     except Exception as e:
         return {"error": str(e)}
-    
     return {
         "ip": payload.ip,
         "product": payload.product,
