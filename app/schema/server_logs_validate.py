@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from typing import Optional, Any, List
 from datetime import date, time, datetime
 from decimal import Decimal
-from pydantic import BaseModel
 
 # Dynamic log model
 class server_logs_Input(BaseModel):

@@ -39,6 +39,7 @@ def greet(sqlalchemy_engine_url):
 
 greet(engine_url_log_server)
 
+
 class ibmspectrum(Base):
         __tablename__ = "remotereplication" # ตั้งชื่อ table ตามต้องการ
         __table_args__ = {"schema": "ibm_spectrum"}
@@ -73,6 +74,7 @@ class ibmspectrum(Base):
                 except SQLAlchemyError as e:
                     session.rollback()
                 
+
 class veeambackupjob(Base):
         __tablename__ = "backup_jobs"
         __table_args__ = {"schema": "veeam"}
@@ -132,8 +134,6 @@ class veeambackupjob(Base):
                    except SQLAlchemyError as e:
                        session.rollback()
                        print(f"❌ Error during upsert: {e}")       
-
-
 
 Base.metadata.create_all(engine_log_server)
 #class veeam_BackupJob(Base):
