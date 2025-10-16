@@ -40,7 +40,7 @@ def greet(sqlalchemy_engine_url):
 greet(engine_url_log_server)
 
 
-class ibmspectrum(Base):
+class ibm_spectrum(Base):
         __tablename__ = "remotereplication" # ตั้งชื่อ table ตามต้องการ
         __table_args__ = {"schema": "ibm_spectrum"}
         id = Column(Integer, primary_key=True)
@@ -54,25 +54,21 @@ class ibmspectrum(Base):
         source_target_volume = Column(String)
         status = Column(String)
         type = Column(String)
-        
         batch_id = Column(UUID, nullable=True)
         created_at = Column(DateTime(timezone=True), server_default=func.now())
-        
-        UPSERT_INDEX = ["id"]  # หรือ column ที่ unique จริง
-        UPSERT_FIELDS = [
-            "object_id", "consistency_group", "name", "source_target_host",
-            "source_target_pool", "source_target_storage", "source_target_tier",
-            "source_target_volume", "status", "type", "batch_id"
-        ]
     
         def save(self, payload: list[dict]):
-            """บันทึกข้อมูลแบบ bulk upsert"""
+            """บันทึกข้อมูลแบบ bulk insert"""
             with Session() as session:
                 try:
-                    session.bulk_save_objects([self(**data) for data in payload])
+                    objects = [type(self)(**data) for data in payload]  # สร้าง instance ใหม่
+                    session.bulk_save_objects(objects)
                     session.commit()
+                    print(f"✅ Saved {len(objects)} rows successfully")
                 except SQLAlchemyError as e:
                     session.rollback()
+                    print(f"❌ Error during save: {e}")
+                    raise
                 
 
 class veeambackupjob(Base):

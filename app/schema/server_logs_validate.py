@@ -9,7 +9,7 @@ class server_logs_Input(BaseModel):
     product: str   # ใช้เป็น key เลือก model
     data: List[Any]
 
-class ibmspectrum(BaseModel):
+class ibm_spectrum(BaseModel):
     object_id : Optional[str] = None
     consistency_group : Optional[str] = None
     name : Optional[str] = None
@@ -57,7 +57,8 @@ class veeambackupjob(BaseModel):
     totalsizedelta: Optional[int] = None
     totalusedsizedelta: Optional[int] = None
     hash_id: Optional[str] = None
-
+    class Config:
+        extra = "ignore"
 
   # backupjob
   # server
