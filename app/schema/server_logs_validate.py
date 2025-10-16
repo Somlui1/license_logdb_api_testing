@@ -10,7 +10,7 @@ class server_logs_Input(BaseModel):
     product: str   # ใช้เป็น key เลือก model
     data: List[Any]
 
-class ibm_spectrum(BaseModel):
+class ibmspectrum(BaseModel):
     object_id : Optional[str] = None
     consistency_group : Optional[str] = None
     name : Optional[str] = None

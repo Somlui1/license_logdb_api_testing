@@ -1,0 +1,42 @@
+{
+"data": [
+  	{
+            "device_id": "af39deee-4db0-4409-9dca-fcb22c62d9d2",
+            "account_id": "f674161e-78b4-4945-bc3b-f7d61fde6344",
+            "site_id": "1f6ef943-c314-41cc-8484-27980d0d11f3",
+            "site_name": "WGC-1-6463e9ab95114a848b9d",
+            "host_name": "LINUX_DESKTOP_1",
+            "type": 1,
+            "description": null,
+            "domain": "WORKGROUP",
+            "platform_id": 2,
+            "ip_address": "192.168.0.212",
+            "mac_addresses": [
+                "2C:0A:E5:C2:DE:0F",
+                "00:0E:A6:F8:FE:FF",
+                "00:0E:A6:F9:1B:6D",
+                "00:15:AF:0A:C3:12",
+                "08:00:27:00:60:D5",
+                "20:41:53:59:4E:FF"
+            ],
+            "operating_system": "Debian (10.10)",
+            "license_status": 0,
+            "isolation_state": 0,
+            "encryption": 6,
+            "reinstall_protection_requested": false,
+            "reinstall_agent_requested": false,
+            "reboot_requested": false,
+            "agent_version": "1.10.10.0001",
+            "last_connection": "2021-12-07T01:04:08.644Z",
+            "security_configuration_name": null,
+            "security_configuration_id": "ac6b4f17-bd6e-467f-9083-aa7d90a8fee2",
+            "logged_on_users_list": [
+                "user1",
+                "user2"
+            ],
+            "custom_group_folder_path": "All\ServersFolderName\GroupName1",
+            "active_directory_canonical_name": "ROOTDOMAIN.local\Computers\Servers\Division\DEVICE_5"					
+        }
+  ],
+"total_items": 1
+}

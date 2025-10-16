@@ -21,7 +21,6 @@ TENANTS = {
     }
 }
 
-
 def get_connection():
     return mysql.connector.connect(
         host="172.17.0.3",
@@ -69,6 +68,7 @@ def fetch_devices(tenant_name):
     except Exception as e:
         return [], str(e)
 
+
 def get_devices_by_tenant(name: Optional[str] = None, boolean: Optional[bool] = None):
     conn = None
     try:
@@ -101,7 +101,6 @@ def get_devices_by_tenant(name: Optional[str] = None, boolean: Optional[bool] = 
         """
 
         params = []
-
         if name:
             sql += " AND b.name LIKE %s"
             params.append(f"%{name}%")

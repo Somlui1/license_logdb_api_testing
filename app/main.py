@@ -160,7 +160,7 @@ async def server_logs_get_payload_dynamic(payload: server_logs_validate.server_l
             dict_objects.append(d)
 
         # Bulk upsert batch 600 row
-        await asyncio.to_thread(orm_class().save, dict_objects)
+        await asyncio.to_thread(orm_class().save,dict_objects)
         # บันทึก raw logs
     except Exception as e:
         return {"error": str(e)}

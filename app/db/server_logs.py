@@ -39,7 +39,7 @@ def greet(sqlalchemy_engine_url):
 
 greet(engine_url_log_server)
 
-class ibm_spectrum(Base):
+class ibmspectrum(Base):
         __tablename__ = "remotereplication" # ตั้งชื่อ table ตามต้องการ
         __table_args__ = {"schema": "ibm_spectrum"}
         id = Column(Integer, primary_key=True)
