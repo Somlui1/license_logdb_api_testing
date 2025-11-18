@@ -3,15 +3,25 @@ version: "3.9"
 services:
   my-fastapi:
     build: .
+    container_name: api_service
     ports:
-      - "8181:80"
+      - "8787:80"
     volumes:
       - ./app:/app
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]
+    command:
+      [
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "80",
+        "--reload",
+      ]
     restart: unless-stopped
     networks:
       - my-app
 
 networks:
   my-app:
-    external: true   # ใช้ network ที่สร้างไว้แล้ว
+    external: true # ใช้ network ที่สร้างไว้แล้ว
