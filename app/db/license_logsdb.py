@@ -2,10 +2,6 @@ from sqlalchemy import UUID, Column, Integer, String, DateTime, Date,Float, Time
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
-from app.schema import license_log_validate 
-import decimal
-import datetime
-import uuid
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
