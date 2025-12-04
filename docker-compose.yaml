@@ -3,9 +3,9 @@ version: "3.9"
 services:
   my-fastapi:
     build: .
-    container_name: api_service
+    container_name: fastapi_server
     ports:
-      - "8787:80"
+      - "8181:80"
     volumes:
       - ./app:/app
     command:
@@ -18,7 +18,7 @@ services:
         "80",
         "--reload",
       ]
-    restart: unless-stopped
+    restart: always
     networks:
       - my-app
 
