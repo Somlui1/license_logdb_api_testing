@@ -4,8 +4,6 @@ from .routers.server_logs import router as server_logs_router
 from .routers.testing import app
 from urllib.parse import urlencode
 #app = FastAPI()
-
-
 app.include_router(watchguard_router)
 app.include_router(server_logs_router)
 
