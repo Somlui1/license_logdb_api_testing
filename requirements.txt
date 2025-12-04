@@ -7,7 +7,7 @@ pymysql
 #mysql-connector-python
 #asyncpg
 sqlalchemy
-datetime
+#datetime
 uvicorn[standard]
 psycopg2-binary
-urllib.parse
+#urllib.parse
