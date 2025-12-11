@@ -15,7 +15,7 @@ engine_url_license_logsdb = "postgresql://itsupport:aapico@10.10.3.215:5432/lice
 engine_license_logsdb = create_engine(engine_url_license_logsdb)
 Base = declarative_base()
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine_license_logsdb)
-schemas = ["autoform", "nx","AHA_catia","AA_catia", "solidworks", "autodesk", "testing"]
+schemas = ["autoform", "nx","AHA_catia","AA_catia", "solidworks", "autodesk", "testing","solidwork"]
 
 def chunked(iterable, size):
     for i in range(0, len(iterable), size):
@@ -30,6 +30,38 @@ def bulk_upsert(session, orm_class, data: list[dict], chunk_size: int = 600):
             set_=set_dict
         )
         session.execute(stmt)
+
+class solidwork(Base):
+        __tablename__ = "session_logs"
+        __table_args__ = {"schema": "solidwork"}
+        id = Column(Integer, primary_key=True, autoincrement=True)
+        start_datetime = Column(DateTime)
+        start_action = Column(String)
+        end_datetime = Column(DateTime)
+        end_action = Column(String)   
+        duration_minutes = Column(Numeric(10,2))
+        hostname = Column(String)
+        module = Column(String)
+        username = Column(String)       
+        hash_id = Column(String,unique=True)
+        batch_id = Column(UUID, nullable=True)
+        created_at = Column(DateTime(timezone=True), server_default=func.now())
+        UPSERT_INDEX = ["hash_id"]
+        UPSERT_FIELDS = [
+        "start_datetime", "start_action", "end_datetime", "end_action",
+        "duration_minutes", "hostname", "module", "username", "batch_id"
+    ]
+        def save(self, payload: list[dict]):
+            """บันทึกข้อมูลแบบ bulk upsert"""
+            with Session() as session:
+                try:
+                    bulk_upsert(session, self.__class__, payload, chunk_size=600)
+                    session.commit()
+                    print("✅ Data upsert successfully")
+                except SQLAlchemyError as e:
+                    session.rollback()
+                    print(f"❌ Error during upsert: {e}")
+
 
 class CatiaBase(Base):
     __abstract__ = True

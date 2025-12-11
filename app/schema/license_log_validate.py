@@ -110,6 +110,21 @@ class nx(BaseModel):
         extra = "ignore"
     
 
+class solidwork(BaseModel):
+    start_datetime: Optional[datetime] = None
+    start_action: Optional[str] = None
+    end_datetime: Optional[datetime] = None
+    end_action: Optional[str] = None
+    duration_minutes: Optional[Decimal] = None
+    hostname: Optional[str] = None
+    module: Optional[str] = None
+    username: Optional[str] = None
+    hash_id: Optional[str] = None
+    #batch_id: Optional[str] = None
+    #keyword: Optional[str] = None
+    class Config:
+        extra = "ignore"
+
 # Solidworks session_logs
 #lass solidwork(BaseModel):
 #   start_date: Optional[date] = None
