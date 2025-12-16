@@ -21,6 +21,9 @@ async def watchguard_Endpoint_Security(tenant :str,segment: str,retrive : str,re
         return {"error": error}
     return {"devices": devices}
 
+
+
+
 @router.get("/export/devices&devicesprotectionstatus/{tenant}/",description = "Include query parameters for filtering data")
 async def devices_and_devicesprotectionstatus(tenant :str,csv :bool = Query(default=False, description="Export to CSV file")):
    
