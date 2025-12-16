@@ -2,6 +2,10 @@ from fastapi import APIRouter,Request,Query
 from fastapi.responses import StreamingResponse
 from app.service import watchguard_fn
 from urllib.parse import urlencode
+from app.db import watchguarddb
+
+session = watchguarddb.Session()
+
 router = APIRouter(
     prefix="/watchguard",  # ตั้ง prefix ที่นี่เลย
     tags=["watchguard"]
