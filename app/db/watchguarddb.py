@@ -22,6 +22,7 @@ def chunked(iterable, size):
     for i in range(0, len(iterable), size):
         yield iterable[i:i + size]
 
+
 def bulk_upsert(session, orm_class, data: list[dict], chunk_size: int = 600):
     for batch in chunked(data, chunk_size):
         stmt = insert(orm_class).values(batch)
@@ -29,6 +30,15 @@ def bulk_upsert(session, orm_class, data: list[dict], chunk_size: int = 600):
         stmt = stmt.on_conflict_do_update(
             index_elements=orm_class.UPSERT_INDEX,
             set_=set_dict
+        )
+        session.execute(stmt)
+
+
+def bulk_insert(session, orm_class, data: list[dict], chunk_size: int = 600):
+    for batch in chunked(data, chunk_size):
+        stmt = insert(orm_class).values(batch)
+        stmt = stmt.on_conflict_do_nothing(
+            index_elements=orm_class.UPSERT_INDEX
         )
         session.execute(stmt)
 
@@ -68,7 +78,7 @@ class path_history_by_computer(Base):
     __tablename__ = "path_history_by_computers"
     __table_args__ = {"schema": "Patch_logs"}
     id = Column(Integer, primary_key=True, autoincrement=True)
-    Client = Column(Text, nullable=False, comment="Client/Organization name")
+    Client = Column(Text, comment="Client/Organization name")
     Computer_type = Column(Text, comment="Computer type (Workstation, Laptop)")
     Computer = Column(Text, nullable=False, comment="Computer Hostname")
     IP_address = Column(Text, comment="IP address (supports IPv4/IPv6)")
@@ -97,18 +107,17 @@ class path_history_by_computer(Base):
     UPSERT_FIELDS = []
 
 # Create the Base Class for model declaration
-Base = declarative_base()
 
 class AvailablePatch(Base):
     __tablename__ = 'available_patches'
     __table_args__ = {"schema": "Patch_logs"}
     # Primary Key
     id = Column(BigInteger, primary_key=True)  # Use BigInteger for large ID sets
-    # 1. Identifiers (Using String(36) for UUIDs)
-    account_id = Column(String(36), nullable=False, comment="Unique ID of the customer account (UUID)")
-    site_id = Column(String(36), nullable=False, comment="Unique ID of the site (UUID)")
+    # 1. Identifiers (Using String for UUIDs)
+    account_id = Column(String, nullable=False, comment="Unique ID of the customer account (UUID)")
+    site_id = Column(String, nullable=False, comment="Unique ID of the site (UUID)")
     site_name = Column(Text, comment="Name of the site/client")
-    device_id = Column(String(36), nullable=False, comment="Unique ID of the device (UUID)")
+    device_id = Column(String, nullable=False, comment="Unique ID of the device (UUID)")
     host_name = Column(Text, nullable=False, comment="Hostname of the device")
     # 2. Device & Vendor IDs (Integers for codes)
     device_type = Column(Integer, comment="Type code of the device")
@@ -119,7 +128,7 @@ class AvailablePatch(Base):
     vendor_name = Column(Text, comment="Vendor name (e.g., Microsoft, 7-Zip)")
     family_name = Column(Text, comment="Patch family name (e.g., .Net)")
     # 3. Patch Details
-    patch_id = Column(String(36), nullable=False, comment="Unique ID of the patch (UUID format)")
+    patch_id = Column(String, nullable=False, comment="Unique ID of the patch (UUID format)")
     patch_name = Column(Text, comment="Full name of the patch (e.g., .NET Framework 4.8.1 (KB...))")
     program_name = Column(Text, comment="Name of the affected program")
     program_version = Column(Text, comment="Version of the affected program")
@@ -127,7 +136,7 @@ class AvailablePatch(Base):
     patch_type = Column(Integer, comment="Type code of the patch")
     # 4. Status & Dates
     patch_management_status = Column(Integer, comment="Patch management status code")
-    custom_group_folder_id = Column(String(36), comment="ID of the custom group folder (UUID)")
+    custom_group_folder_id = Column(String, comment="ID of the custom group folder (UUID)")
     isolation_state = Column(Integer, comment="Isolation state code")
     license_status = Column(Integer, comment="License status code")
     patch_installation_availability = Column(Integer, comment="Installation availability code")

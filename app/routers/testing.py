@@ -61,6 +61,9 @@ async def get_payload_dynamic(payload: license_log_validate.LicenseInput):
         "product": payload.product,
         "parsed_data": validated
     }
+
+
+
 @app.post("/insert/testing/")
 async def get_payload_dynamic_v2(payload: license_log_validate.LicenseInput):
     # ดึง Pydantic model และ ORM class
