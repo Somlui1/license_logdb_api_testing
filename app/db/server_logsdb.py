@@ -30,6 +30,7 @@ def bulk_upsert(session, orm_class, data: list[dict], chunk_size: int = 600):
             set_=set_dict
         )
         session.execute(stmt)
+        
 def greet(sqlalchemy_engine_url):
     engine = create_engine(sqlalchemy_engine_url)
     # สร้าง schemas

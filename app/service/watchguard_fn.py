@@ -1,11 +1,16 @@
+import asyncio
 import io
+import time
 from typing import List, Dict, Any
 import base64
+import aiohttp
+from fastapi import HTTPException
 import requests
 from urllib.parse import urlencode
 from collections import defaultdict
 import csv
 from fastapi.responses import StreamingResponse
+
 TENANTS = {
     "ah": {
         "Credential": "583db905e5af13cd_r_id:it@minAPI1WGant!",
@@ -23,6 +28,72 @@ TENANTS = {
         "Account": "WGC-3-048294f7f1ed497981c8"
     }
 }
+
+
+BASE_URL = "https://api.jpn.cloud.watchguard.com"
+TOKEN_URL = f"{BASE_URL}/oauth/token"
+
+# =========================
+# Timer helper
+# =========================
+def now():
+    import time
+    return time.perf_counter()
+
+# =========================
+# 🔑 Token (once)
+# =========================
+async def get_token(session: aiohttp.ClientSession, credential: str) -> str:
+    cred_b64 = base64.b64encode(credential.encode()).decode()
+    async with session.post(
+        TOKEN_URL,
+        headers={
+            "Authorization": f"Basic {cred_b64}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        data={"grant_type": "client_credentials", "scope": "api-access"},
+        timeout=60,
+    ) as resp:
+        resp.raise_for_status()
+        return (await resp.json())["access_token"]
+
+# =========================
+# 🌐 Fetch with retry
+# =========================
+async def fetch_devices_async(
+    session: aiohttp.ClientSession,
+    tenant: dict,
+    token: str,
+    segment: str,
+    retrieve: str,
+    query: str,
+    sem: asyncio.Semaphore,
+    retries: int = 2,
+) -> Dict[str, Any]:
+    # ใช้ single quote ('Account') ข้างใน f-string ที่เป็น double quote
+    url = f"{BASE_URL}/rest/{segment}/management/api/v1/accounts/{tenant['Account']}/{retrieve}?{query}"
+    headers = {
+        "WatchGuard-API-Key": tenant["APIKey"],
+        "Authorization": f"Bearer {token}",
+    }
+
+    async with sem:
+        for attempt in range(1, retries + 2):
+            try:
+                # กำหนด timeout ย่อยต่อ request เพื่อไม่ให้ค้างนานเกินไป
+                async with session.get(url, headers=headers, timeout=300) as resp:
+                    resp.raise_for_status()
+                    return await resp.json()
+            except Exception as e:
+                if attempt > retries:
+                    print(f"❌ Final error after {retries} retries: {e}")
+                    return {"data": [], "total_items": 0}
+                print(f"⚠️ Retry {attempt} due to: {e}")
+                await asyncio.sleep(1)
+
+
+
+
 
 def fetch_devices(tenant_name: str, segment: str, retrive: str, querystring: str | None = None):
     
@@ -117,22 +188,6 @@ def merge_objects(
     return merged
 
 
-#test = {
-#        "tenant_name": "all",
-#        "segment": "endpoint-security",
-#        "retrive": "devices",
-#        "querystring": urlencode({
-#            "$top": 1,
-#            "$count": "true"
-#        })
-#}
-#
-#object1 = fetch_devices(tenant_name ='ah',segment ="endpoint-security", retrive = "devices")
-#object2 = fetch_devices(tenant_name ='ah',segment ="endpoint-security", retrive = "devicesprotectionstatus")
-#
-#merged = merge_objects(object1[0]['data'], object2[0]['data'])
-
-
 def export_csv(data: List[Dict[str, Any]], filename: str = "output.csv"):
     if not data:
         raise ValueError("No data to export.")
@@ -173,3 +228,5 @@ def export_csv_fastapi(data: List[Dict[str, Any]], filename: str = "output.csv")
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+

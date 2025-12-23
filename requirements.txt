@@ -11,3 +11,4 @@ sqlalchemy
 uvicorn[standard]
 psycopg2-binary
 #urllib.parse
+aiohttp

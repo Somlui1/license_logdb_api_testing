@@ -1,161 +1,127 @@
-from fastapi import FastAPI, HTTPException,APIRouter
-from sqlalchemy.dialects.postgresql import insert
-import uuid
-from app.schema import license_log_validate
-from app.schema import server_logs_validate
-from app.db import license_logsdb
-from app.db import server_logsdb
-from sqlalchemy.exc import SQLAlchemyError
 import asyncio
-#from routers.watchguard import router as watchguard_router
+from fastapi import APIRouter, FastAPI,Request,Query,HTTPException
+from urllib.parse import urlencode
+import aiohttp
+from typing import List, Dict, Any
+import base64
 app = FastAPI()
-#ORM session
-Session_license_logsdb = license_logsdb.Session
-Session_log_server = server_logsdb.Session
-#=============================
-def chunked(iterable, size):
-    for i in range(0, len(iterable), size):
-        yield iterable[i:i + size]
+TENANTS = {
+    "ah": {
+        "credential": "583db905e5af13cd_r_id:it@minAPI1WGant!",
+        "api_key": "FfSghSoNzPlloALCK9LN5E46rzGnAYqxJ+mgirtf",
+        "account": "WGC-3-981e96282dcc4ad0856c",
+    }
+}
+BASE_URL = "https://api.jpn.cloud.watchguard.com"
+TOKEN_URL = f"{BASE_URL}/oauth/token"
 
-def bulk_upsert(session, orm_class, data: list[dict], chunk_size: int = 600):
-    for batch in chunked(data, chunk_size):
-        stmt = insert(orm_class).values(batch)
-        set_dict = {field: stmt.excluded[field] for field in orm_class.UPSERT_FIELDS}
-        stmt = stmt.on_conflict_do_update(
-            index_elements=orm_class.UPSERT_INDEX,
-            set_=set_dict
-        )
-        session.execute(stmt)
+# =========================
+# Timer helper
+# =========================
+def now():
+    import time
+    return time.perf_counter()
 
-#from routers.watchguard import router as watchguard_router
-#watchguard_router.prefix = "/watchguard"
-#app.include_router(watchguard_router.router)
-@app.post("/testing/")
-async def get_payload_dynamic(payload: license_log_validate.LicenseInput):
-    # ดึง Pydantic model และ ORM class
-    ver = getattr(license_log_validate, payload.product, None)   # Pydantic model
-    orm_class = getattr(license_logsdb, payload.product, None)  # ORM class
+# =========================
+# 🔑 Token (once)
+# =========================
+async def get_token(session: aiohttp.ClientSession, credential: str) -> str:
+    cred_b64 = base64.b64encode(credential.encode()).decode()
+    async with session.post(
+        TOKEN_URL,
+        headers={
+            "Authorization": f"Basic {cred_b64}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        data={"grant_type": "client_credentials", "scope": "api-access"},
+        timeout=60,
+    ) as resp:
+        resp.raise_for_status()
+        return (await resp.json())["access_token"]
 
-    if not ver:
-        return {"error": f"Model '{payload.product}' not found"}
-    if not orm_class:
-        return {"error": f"ORM '{payload.product}' not found"}
-
-    try:
-        share_uuid = uuid.uuid4()
-
-        # Validate payload
-        validated = [ver(**item) for item in payload.data]
-
-        # แปลงเป็น list ของ dict พร้อม batch_id
-        dict_objects = []
-        for item in validated:
-            d = item.dict()
-            d['batch_id'] = share_uuid
-            dict_objects.append(d)
-
-        await asyncio.to_thread(orm_class().save, dict_objects)
-
-        # บันทึก raw logs
-        RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product)
-        log_entry = RawLogs.from_pydantic(payload.data, batch_id=share_uuid)
-        with Session_license_logsdb() as session:
-            session.add(log_entry)
-            session.commit()
-
-        if payload.raw:
-            RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product,table_name='raw_logs')
-            log_entry = RawLogs.from_pydantic(payload.row, batch_id=share_uuid)
-            with Session_license_logsdb() as session:
-                session.add(log_entry)
-                session.commit()
-
-    except Exception as e:
-        return {"error": str(e)}
-
-    return {
-        "ip": payload.ip,
-        "product": payload.product,
-        "parsed_data": validated
+# =========================
+# 🌐 Fetch with retry
+# =========================
+async def fetch_devices(
+    session: aiohttp.ClientSession,
+    tenant: dict,
+    token: str,
+    segment: str,
+    retrieve: str,
+    query: str,
+    sem: asyncio.Semaphore,
+    retries: int = 2,
+) -> Dict[str, Any]:
+    url = f"{BASE_URL}/rest/{segment}/management/api/v1/accounts/{tenant['account']}/{retrieve}?{query}"
+    headers = {
+        "WatchGuard-API-Key": tenant["api_key"],
+        "Authorization": f"Bearer {token}",
     }
 
-@app.post("/insert/testing/")
-async def get_payload_dynamic_v2(payload: license_log_validate.LicenseInput):
-    # ดึง Pydantic model และ ORM class
-    ver = getattr(license_log_validate, payload.product, None)   # Pydantic model
-    orm_class = getattr(license_logsdb, payload.product, None)  # ORM class
-
-    if not ver:
-        return {"error": f"Model '{payload.product}' not found"}
-    if not orm_class:
-        return {"error": f"ORM '{payload.product}' not found"}
-
-    try:
-        share_uuid = uuid.uuid4()
-
-        # Validate payload
-        validated = [ver(**item) for item in payload.data]
-        # แปลงเป็น list ของ dict พร้อม batch_id
-        dict_objects = []
-        for item in validated:
-            d = item.dict()
-            d['batch_id'] = share_uuid
-            dict_objects.append(d)
-        # Bulk upsert batch 600 row
-        with Session_license_logsdb() as session:
+    async with sem:
+        for attempt in range(1, retries + 2):
             try:
-                session.bulk_save_objects([orm_class(**data) for data in dict_objects])
-                session.commit()
-            except SQLAlchemyError as e:
-                session.rollback()
-                raise
+                async with session.get(url, headers=headers) as resp:
+                    resp.raise_for_status()
+                    return await resp.json()
+            except asyncio.TimeoutError:
+                if attempt > retries:
+                    raise
+                print(f"⚠️ timeout retry {attempt} → {query}")
 
-#schema_name: str,table_name: str = "raw_logs"
-        # บันทึก raw logs
-        RawLogs = license_logsdb.raw_logs_table(schema_name=payload.product)
-        log_entry = RawLogs.from_pydantic(payload, batch_id=share_uuid)
-        with Session_license_logsdb() as session:
-            session.add(log_entry)
-            session.commit()
+# =========================
+# 🚀 Router endpoint
+# =========================
+@app.get("/patches")
+async def get_watchguard_patches(tenant_id: str = "ah"):
+    if tenant_id not in TENANTS:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    t_start = now()
+    tenant = TENANTS[tenant_id]
+    segment = "endpoint-security"
+    retrieve = "patchavailability"
+    top = 900
+    max_concurrent = 6
+    sem = asyncio.Semaphore(max_concurrent)
+    patches: List[dict] = []
 
-    except Exception as e:
-        return {"error": str(e)}
+    timeout = aiohttp.ClientTimeout(total=600)
+    connector = aiohttp.TCPConnector(limit=50, limit_per_host=20)
+
+    async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
+        try:
+            token = await get_token(session, tenant["credential"])
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Token error: {e}")
+
+        # First page
+        first = await fetch_devices(
+            session, tenant, token, segment, retrieve, f"$top={top}&$skip=0&$count=true", sem
+        )
+        total = first["total_items"]
+        patches.extend(first["data"])
+        print(f"Fetched first page: {len(first['data'])}/{total}")
+
+
+        skips = list(range(top, total, top))
+        tasks = [
+            fetch_devices(session, tenant, token, segment, retrieve, f"$top={top}&$skip={skip}", sem)
+            for skip in skips
+        ]
+        completed = 0
+        for coro in asyncio.as_completed(tasks):
+            result = await coro
+            patches.extend(result.get("data", []))
+            completed += 1
+            print(f"Progress {completed}/{len(tasks)} → {len(patches)}/{total}")
+
+    print("\n==========================")
+    print(f"⏱ Total time : {now() - t_start:.2f}s")
+    print(f"✔ Total patches: {len(patches)}")
 
     return {
-        "ip": payload.ip,
-        "product": payload.product,
-        "parsed_data": validated
+        "total_items": total,
+        "fetched_items": len(patches),
+        "patches": patches,
+        "elapsed_seconds": round(now() - t_start, 2)
     }
-
-@app.post("/server_logs/")
-async def server_logs_get_payload_dynamic(payload: server_logs_validate.server_logs_Input):
-    # ดึง Pydantic model และ ORM class
-    ver = getattr(server_logs_validate, payload.product, None)   # Pydantic model
-    orm_class = getattr(server_logsdb, payload.product, None)  # ORM class
-    
-    if not ver:
-        return {"error": f"Model '{payload.product}' not found"}
-    if not orm_class:
-        return {"error": f"ORM '{payload.product}' not found"}
-
-    try:
-        share_uuid = uuid.uuid4()
-        # Validate payload
-        validated = [ver(**item) for item in payload.data]
-        # แปลงเป็น list ของ dict พร้อม batch_id
-        dict_objects = []
-        for item in validated:
-            d = item.dict()
-            d['batch_id'] = share_uuid
-            dict_objects.append(d)
-        # Bulk upsert batch 600 row
-        await asyncio.to_thread(orm_class().save,dict_objects)
-        # บันทึก raw logs
-    except Exception as e:
-        return {"error": str(e)}
-    return {
-        "ip": payload.ip,
-        "product": payload.product,
-        "parsed_data": validated
-    }
-

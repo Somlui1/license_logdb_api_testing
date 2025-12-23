@@ -6,7 +6,6 @@ import uuid
 from app.db import license_logsdb
 
 Session_license_logsdb = license_logsdb.Session
-
 #router = APIRouter(
 #    prefix="/",  # ตั้ง prefix ที่นี่เลย
 #    tags=["license_logs"]
@@ -61,7 +60,6 @@ async def get_payload_dynamic(payload: license_log_validate.LicenseInput):
         "product": payload.product,
         "parsed_data": validated
     }
-
 
 
 @app.post("/insert/testing/")
