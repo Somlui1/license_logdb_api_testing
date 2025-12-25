@@ -103,12 +103,13 @@ async def truncate(schema_name: str, table_name: str):
 # เก็บเวลาที่เรียก API ล่าสุด
 last_called: datetime | None = None
 lock = asyncio.Lock()  # เพื่อให้ thread-safe ใน async
+last_total_patches: int = 0
 @router.get("/patches")
 async def get_watchguard_patches(tenant_id: str = "ah"):
     insert_table = 'AvailablePatch'
     ver = getattr(watchguard_validate, insert_table, None)
     orm_class = getattr(watchguarddb, insert_table, None)
-    global last_called
+    global last_called, last_total_patches
     async with lock:
         now = datetime.utcnow()
         if last_called and now - last_called < timedelta(minutes=5):
@@ -116,7 +117,8 @@ async def get_watchguard_patches(tenant_id: str = "ah"):
             remaining = timedelta(minutes=5) - (now - last_called)
             return{
                 "table": orm_class.__tablename__ ,
-                "detail": f"Too soon! Please wait {int(remaining.total_seconds())} seconds."
+                "detail": f"Too soon! Please wait {int(remaining.total_seconds())} seconds.",
+                "cached_total_patches": last_total_patches
             }
             raise HTTPException(
                 status_code=429, 
@@ -168,7 +170,7 @@ async def get_watchguard_patches(tenant_id: str = "ah"):
     print("\n==========================")
     print(f"⏱ Total time : {watchguard_fn.now() - t_start:.2f}s")
     print(f"✔ Total patches: {len(patches)}")
-    
+    last_total_patches = len(patches)
     #truncate table & insert
 
 
