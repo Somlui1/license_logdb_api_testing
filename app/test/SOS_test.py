@@ -3,15 +3,18 @@ import requests
 # URL ของ FastAPI ที่เราสร้างไว้
 api_url = "http://localhost:8000/SOS/report-issue"
 
-# ข้อมูลที่ต้องการส่ง (เปลี่ยน User/Pass ได้ตรงนี้)
+# ข้อมูลที่ต้องการส่ง (Login Intranet)
 payload = {
-    "username": "wajeepradit.p",
-    "password": "YOUR_REAL_PASSWORD",
-    "sos_message": "ขอแจ้งซ่อม Printer ที่ชั้น 2 หมึกหมดและกระดาษติด (Reported via API)",
-    
-    # Optional fields (ถ้าไม่ใส่ ระบบจะใช้ Default ใน code)
-    "requestor_name": "Wajeepradit Prompan",
-    "tel": "9999"
+   "username": "your_username",   # ใส่ Username Intranet
+   "password": "your_password",   # ใส่ Password Intranet
+   "sos_message": "test sos",     # รายละเอียดปัญหา
+   "requestor_name": "Wajeepradit Prompan",
+   "email": "[EMAIL_ADDRESS]",
+   "dept": "IT",
+   "tel": "0812345678",
+   "location": "BKK",
+   "company": "AH",
+   "ips": "10.10.20.93(API_AGENT)"
 }
 
 try:

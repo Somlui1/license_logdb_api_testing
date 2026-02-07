@@ -14,13 +14,14 @@ class SOSRequest(BaseModel):
     username: str = Field(..., description="Username for Intranet Login")
     password: str = Field(..., description="Password for Intranet Login")
     sos_message: str = Field(..., description="Details of the IT issue")
-    
     # Optional Fields (มีค่า Default)
     requestor_name: str = "Wajeepradit Prompan"
     email: str = "wajeepradit.p@aapico.com"
     dept: str = "IT"
     location: str = "office AH"
     tel: str = "1234"
+    company: str = "AH"
+    ips: str = "10.10.20.93(API_AGENT)"
 
 # --- API Endpoint ---
 @SOS.post("/report-issue")
@@ -35,7 +36,9 @@ async def report_issue(ticket: SOSRequest):
             email=ticket.email,
             dept=ticket.dept,
             tel=ticket.tel,
-            location=ticket.location
+            location=ticket.location,
+            company=ticket.company,
+            ips=ticket.ips
         )
         return result
 

@@ -1,14 +1,18 @@
 import requests
 import random
+import os
 
+# Access the variables
+user = os.getenv("SOSusername")
+pw = os.getenv("SOSpassword")
 class IntranetService:
     def __init__(self):
         self.login_url = "http://intranet.aapico.com/SOS2014/conIdap.php"
         self.ticket_url = "http://intranet.aapico.com/SOS2014/savenewticket.php"
         self.base_referrer = "http://intranet.aapico.com/SOS2014/index.php"
 
-    def submit_ticket(self, username, password, sos_message, requestor_name, email, dept, tel, location):
-        """
+    def submit_ticket(self, username, password, sos_message, requestor_name, email, dept, tel, location, company, ips):
+        """ 
         ฟังก์ชันหลักในการ Login และส่ง Ticket
         คืนค่า: Dict ผลลัพธ์ หรือ Raise Exception หากเกิดข้อผิดพลาด
         """
@@ -25,7 +29,7 @@ class IntranetService:
         login_payload = {
             "user_name": username,
             "password": password,
-            "cpn": "undefined",
+            "cpn": "undefined",  # Assuming this is static or needs to be passed if dynamic
             "rand": str(random.random())
         }
 
@@ -33,7 +37,10 @@ class IntranetService:
             login_resp = session.post(self.login_url, headers=login_headers, data=login_payload)
             if login_resp.status_code != 200:
                 raise Exception(f"Login failed (HTTP {login_resp.status_code})")
-            # ถ้า Intranet มีการเช็ค Content ว่า Login สำเร็จหรือไม่ ควรเช็คตรงนี้เพิ่ม
+            
+            # Check for failed login indicators in response text if known, e.g.:
+            # if "Invalid username or password" in login_resp.text:
+            #     raise Exception("Authentication failed")
             
         except Exception as e:
             raise Exception(f"Connection Error during Login: {str(e)}")
@@ -44,18 +51,20 @@ class IntranetService:
             "upgrade-insecure-requests": "1"
         }
 
+        # Format payload for multipart/form-data
+        # Key: (filename, value) - filename is None for form fields
         ticket_payload = {
             "requestor": (None, requestor_name),
-            "company": (None, "AH"),
+            "company": (None, company),
             "dept": (None, dept),
             "u_email": (None, email),
             "numrow2": (None, ""),
-            "ips": (None, "10.10.20.93(API_AGENT)"),
+            "ips": (None, ips),
             "tel2request": (None, tel),
             "r_location": (None, location),
-            "inform": (None, "1. IT Support"),
+            "inform": (None, "1. IT Support"),  # Defaulting, or make parameter
             "g_itSupport": (None, "1. IT Support"),
-            "iradio": (None, "Low"),
+            "iradio": (None, "Low"), # Defaulting
             "p_des": (None, sos_message)
         }
 
