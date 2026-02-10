@@ -46,3 +46,7 @@ async def report_issue(ticket: SOSRequest):
             raise HTTPException(status_code=401, detail=error_msg)
         else:
             raise HTTPException(status_code=500, detail=error_msg)
+
+
+
+            
