@@ -64,7 +64,7 @@ class IntranetService:
             "r_location": (None, location),
             "inform": (None, "1. IT Support"),  # Defaulting, or make parameter
             "g_itSupport": (None, "1. IT Support"),
-            "iradio": (None, "Low"), # Defaulting
+            "iradio": (None, "Highest"), # Defaulting
             "p_des": (None, sos_message)
         }
 
