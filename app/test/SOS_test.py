@@ -5,8 +5,6 @@ api_url = "http://localhost:8000/SOS/report-issue"
 
 # ข้อมูลที่ต้องการส่ง (Login Intranet)
 payload = {
-   "username": "your_username",   # ใส่ Username Intranet
-   "password": "your_password",   # ใส่ Password Intranet
    "sos_message": "test sos",     # รายละเอียดปัญหา
    "requestor_name": "Wajeepradit Prompan",
    "email": "[EMAIL_ADDRESS]",

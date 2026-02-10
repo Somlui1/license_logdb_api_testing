@@ -11,9 +11,8 @@ intranet_service = SOS_fn.IntranetService()
 
 # --- Data Model (Pydantic) ---
 class SOSRequest(BaseModel):
-    username: str = Field(..., description="Username for Intranet Login")
-    password: str = Field(..., description="Password for Intranet Login")
-    sos_message: str = Field(..., description="Details of the IT issue")
+
+    sos_message: str = "test SOS massage via API"
     # Optional Fields (มีค่า Default)
     requestor_name: str = "Wajeepradit Prompan"
     email: str = "wajeepradit.p@aapico.com"
@@ -29,8 +28,6 @@ async def report_issue(ticket: SOSRequest):
     try:
         # เรียกใช้ Logic จาก server.py
         result = intranet_service.submit_ticket(
-            username=ticket.username,
-            password=ticket.password,
             sos_message=ticket.sos_message,
             requestor_name=ticket.requestor_name,
             email=ticket.email,

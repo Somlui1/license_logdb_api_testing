@@ -11,7 +11,7 @@ class IntranetService:
         self.ticket_url = "http://intranet.aapico.com/SOS2014/savenewticket.php"
         self.base_referrer = "http://intranet.aapico.com/SOS2014/index.php"
 
-    def submit_ticket(self, username, password, sos_message, requestor_name, email, dept, tel, location, company, ips):
+    def submit_ticket(self, sos_message, requestor_name, email, dept, tel, location, company, ips):
         """ 
         ฟังก์ชันหลักในการ Login และส่ง Ticket
         คืนค่า: Dict ผลลัพธ์ หรือ Raise Exception หากเกิดข้อผิดพลาด
@@ -27,8 +27,8 @@ class IntranetService:
         }
 
         login_payload = {
-            "user_name": username,
-            "password": password,
+            "user_name": user,
+            "password": pw,
             "cpn": "undefined",  # Assuming this is static or needs to be passed if dynamic
             "rand": str(random.random())
         }
