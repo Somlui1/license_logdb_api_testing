@@ -1,5 +1,6 @@
 import requests
 import os
+from collections import defaultdict
 from datetime import datetime, timedelta, time, date
 from app.db.SOS_holiday import Holiday
 from app.db.SOS_sla_cache import SLACache
@@ -81,6 +82,10 @@ class SLACalculator:
         skipped = 0
         to_cache = []  # เก็บรายการที่ต้อง save cache
 
+        # สำหรับ Eval Score รายเดือน
+        # key = เดือน (str), value = {"total_score": float, "count": int}
+        eval_by_month = defaultdict(lambda: {"total_score": 0.0, "count": 0})
+
         # โหลด Holidays ทั้งหมดไว้ใช้ (ป้องกัน query ซ้ำ)
         holidays_set = self._load_holidays_set()
 
@@ -93,10 +98,26 @@ class SLACalculator:
                 skipped += 1
                 continue
 
+            # --- Parse Eval Score (ทำก่อน cache check เพราะ eval มาจาก live data) ---
+            eval_raw = ticket.get("EVAL_SCRORE", "") or ""
+            eval_score_str = eval_raw.split(",")[0].strip() if eval_raw else "0"
+            try:
+                eval_score_val = float(eval_score_str)
+            except (ValueError, TypeError):
+                eval_score_val = 0.0
+
+            # สะสม Eval Score ตามเดือน (เฉพาะที่มีค่า > 0)
+            req_date_for_eval = self._parse_req_date(ticket.get("REQ_DATE", ""))
+            if eval_score_val > 0 and req_date_for_eval:
+                month_key = str(req_date_for_eval.month)
+                eval_by_month[month_key]["total_score"] += eval_score_val
+                eval_by_month[month_key]["count"] += 1
+
             # --- Step 1: ตรวจ Cache ---
             cached = SLACache.get_by_ticket_id(ticket_id)
             if cached:
                 cached["from_cache"] = True
+                cached["EVAL_SCRORE"] = eval_score_val
                 results.append(cached)
                 if cached.get("sla_met"):
                     sla_met_count += 1
@@ -121,6 +142,7 @@ class SLACalculator:
             else:
                 sla_missed_count += 1
 
+
             result_item = {
                 "ticket_id": ticket_id,
                 "it_empno": str(ticket.get("IT_EMPNO", "")),
@@ -131,12 +153,24 @@ class SLACalculator:
                 "working_minutes": working_mins,
                 "sla_met": sla_met,
                 "from_cache": False,
+                "EVAL_SCRORE": eval_score_val,
             }
             results.append(result_item)
 
-            # เตรียม data สำหรับ cache (ไม่มี from_cache)
-            cache_data = {k: v for k, v in result_item.items() if k != "from_cache"}
+            # เตรียม data สำหรับ cache (ไม่มี from_cache, EVAL_SCRORE)
+            cache_data = {k: v for k, v in result_item.items() if k not in ("from_cache", "EVAL_SCRORE")}
             to_cache.append(cache_data)
+
+        # ==========================================
+        # คำนวณ Eval Score รายเดือน
+        # สูตร: sum(scores) / (จำนวนคนประเมิน × 10)
+        # เช่น 5 คน ให้คนละ 9 = 45 / (5×10) = 0.90
+        # ==========================================
+        eval_score_summary = {}
+        for month, data in sorted(eval_by_month.items(), key=lambda x: int(x[0])):
+            if data["count"] > 0:
+                score_ratio = round(data["total_score"] / (data["count"] * 10), 2)
+                eval_score_summary[month] = score_ratio
 
         return {
             "total_tickets": len(tickets),
@@ -144,6 +178,7 @@ class SLACalculator:
             "skipped_tickets": skipped,
             "sla_met_count": sla_met_count,
             "sla_missed_count": sla_missed_count,
+            "eval_score": eval_score_summary,
             "results": results,
             "_to_cache": to_cache,  # internal: สำหรับ background save
         }
