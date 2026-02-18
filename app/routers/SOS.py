@@ -1,6 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from typing import List
+from datetime import date
 from app.service import SOS_fn
+from app.db.SOS_holiday import Holiday
 # สร้าง Router
 SOS  = APIRouter(
     prefix="/SOS",  # ตั้ง prefix ที่นี่เลย
@@ -21,6 +24,10 @@ class SOSRequest(BaseModel):
     tel: str = "1234"
     company: str = "AH"
     ips: str = "10.10.20.93(API_AGENT)"
+
+class HolidayItem(BaseModel):
+    date: date
+    name: str
 
 # --- API Endpoint ---
 @SOS.post("/report-issue")
@@ -49,4 +56,39 @@ async def report_issue(ticket: SOSRequest):
 
 
 
+@SOS.patch("/holidays")
+async def upsert_holidays(holidays: List[HolidayItem]):
+    try:
+        # Convert Pydantic models to dicts
+        data = [h.dict() for h in holidays]
+        result = Holiday.save(data)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result.get("error", "Unknown error"))
+            
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class HolidayDeleteRequest(BaseModel):
+    dates: List[date]
+
+@SOS.delete("/holidays")
+async def delete_holidays(item: HolidayDeleteRequest):
+    try:
+        result = Holiday.delete(item.dates)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result.get("error", "Unknown error"))
+            
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@SOS.get("/holidays")
+async def get_holidays(start_date: date = None, end_date: date = None):
+    try:
+        return Holiday.get_by_range(start_date, end_date)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
             
