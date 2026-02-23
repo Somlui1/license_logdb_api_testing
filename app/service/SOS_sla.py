@@ -15,7 +15,6 @@ BREAK_START = time(12, 0)  # 12:00
 BREAK_END = time(13, 0)    # 13:00
 SLA_THRESHOLD_MINUTES = 480  # 8 ชั่วโมงทำงาน
 
-
 class SLACalculator:
     """
     Service สำหรับคำนวณ SLA ของ SOS Ticket
