@@ -13,3 +13,4 @@ psycopg2-binary
 #urllib.parse
 aiohttp
 pythainlp
+jinja2
