@@ -73,7 +73,7 @@ class SLACalculator:
         คำนวณ SLA ของ Ticket ทั้งหมดที่ได้จาก Microservice
         - ตรวจ Cache ก่อน
         - ถ้าไม่มี Cache → คำนวณใหม่
-        Returns: dict พร้อมสรุปผล
+        Returns: dict พร้อมสรุปผล + monthly_summary
         """
         results = []
         sla_met_count = 0
@@ -81,9 +81,14 @@ class SLACalculator:
         skipped = 0
         to_cache = []  # เก็บรายการที่ต้อง save cache
 
-        # สำหรับ Eval Score รายเดือน
-        # key = เดือน (str), value = {"total_score": float, "count": int}
-        eval_by_month = defaultdict(lambda: {"total_score": 0.0, "count": 0})
+        # สถิติรายเดือน: key = เดือน (str)
+        monthly_stats = defaultdict(lambda: {
+            "total": 0,
+            "sla_met": 0,
+            "sla_missed": 0,
+            "eval_total_score": 0.0,
+            "eval_count": 0,
+        })
 
         # โหลด Holidays ทั้งหมดไว้ใช้ (ป้องกัน query ซ้ำ)
         holidays_set = self._load_holidays_set()
@@ -97,7 +102,11 @@ class SLACalculator:
                 skipped += 1
                 continue
 
-            # --- Parse Eval Score (ทำก่อน cache check เพราะ eval มาจาก live data) ---
+            # --- Parse ข้อมูลจาก live data (ทำก่อน cache check) ---
+            req_date_for_month = self._parse_req_date(ticket.get("REQ_DATE", ""))
+            month_key = str(req_date_for_month.month) if req_date_for_month else None
+
+            # Parse Eval Score
             eval_raw = ticket.get("EVAL_SCRORE", "") or ""
             eval_score_str = eval_raw.split(",")[0].strip() if eval_raw else "0"
             try:
@@ -106,11 +115,9 @@ class SLACalculator:
                 eval_score_val = 0.0
 
             # สะสม Eval Score ตามเดือน (เฉพาะที่มีค่า > 0)
-            req_date_for_eval = self._parse_req_date(ticket.get("REQ_DATE", ""))
-            if eval_score_val > 0 and req_date_for_eval:
-                month_key = str(req_date_for_eval.month)
-                eval_by_month[month_key]["total_score"] += eval_score_val
-                eval_by_month[month_key]["count"] += 1
+            if eval_score_val > 0 and month_key:
+                monthly_stats[month_key]["eval_total_score"] += eval_score_val
+                monthly_stats[month_key]["eval_count"] += 1
 
             # --- Step 1: ตรวจ Cache ---
             cached = SLACache.get_by_ticket_id(ticket_id)
@@ -118,10 +125,20 @@ class SLACalculator:
                 cached["from_cache"] = True
                 cached["EVAL_SCRORE"] = eval_score_val
                 results.append(cached)
-                if cached.get("sla_met"):
+
+                is_met = cached.get("sla_met", False)
+                if is_met:
                     sla_met_count += 1
                 else:
                     sla_missed_count += 1
+
+                # สะสมสถิติรายเดือน (cache hit)
+                if month_key:
+                    monthly_stats[month_key]["total"] += 1
+                    if is_met:
+                        monthly_stats[month_key]["sla_met"] += 1
+                    else:
+                        monthly_stats[month_key]["sla_missed"] += 1
                 continue
 
             # --- Step 2: Parse Dates ---
@@ -141,6 +158,13 @@ class SLACalculator:
             else:
                 sla_missed_count += 1
 
+            # สะสมสถิติรายเดือน (fresh calculation)
+            if month_key:
+                monthly_stats[month_key]["total"] += 1
+                if sla_met:
+                    monthly_stats[month_key]["sla_met"] += 1
+                else:
+                    monthly_stats[month_key]["sla_missed"] += 1
 
             result_item = {
                 "ticket_id": ticket_id,
@@ -161,15 +185,28 @@ class SLACalculator:
             to_cache.append(cache_data)
 
         # ==========================================
-        # คำนวณ Eval Score รายเดือน
-        # สูตร: sum(scores) / (จำนวนคนประเมิน × 10)
-        # เช่น 5 คน ให้คนละ 9 = 45 / (5×10) = 0.90
+        # สรุปรายเดือน: total, sla_met, sla_missed, sla_met_pct, eval_score
         # ==========================================
-        eval_score_summary = {}
-        for month, data in sorted(eval_by_month.items(), key=lambda x: int(x[0])):
-            if data["count"] > 0:
-                score_ratio = round(data["total_score"] / (data["count"] * 10), 2)
-                eval_score_summary[month] = score_ratio
+        monthly_summary = {}
+        for month in sorted(monthly_stats.keys(), key=lambda x: int(x)):
+            s = monthly_stats[month]
+            total = s["total"]
+            met = s["sla_met"]
+            missed = s["sla_missed"]
+            met_pct = round((met / total) * 100, 2) if total > 0 else 0.0
+
+            # eval_score = sum(scores) / (จำนวนคนประเมิน × 10)
+            eval_score = 0.0
+            if s["eval_count"] > 0:
+                eval_score = round(s["eval_total_score"] / (s["eval_count"] * 10), 2)
+
+            monthly_summary[month] = {
+                "total_tickets": total,
+                "sla_met": met,
+                "sla_missed": missed,
+                "sla_met_pct": met_pct,
+                "eval_score": eval_score,
+            }
 
         return {
             "total_tickets": len(tickets),
@@ -177,7 +214,7 @@ class SLACalculator:
             "skipped_tickets": skipped,
             "sla_met_count": sla_met_count,
             "sla_missed_count": sla_missed_count,
-            "eval_score": eval_score_summary,
+            "monthly_summary": monthly_summary,
             "results": results,
             "_to_cache": to_cache,  # internal: สำหรับ background save
         }
