@@ -208,62 +208,12 @@ async def generate_ticket_preview():
     หน้า Form สำหรับทดสอบ generate-ticket
     - วาง JSON → กด Generate → เปิด HTML ใน Tab ใหม่
     """
-    return HTMLResponse(content="""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Voucher Generator - Preview</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
-        .container { background: #16213e; border-radius: 16px; padding: 32px; width: 640px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-        h1 { font-size: 22px; margin-bottom: 8px; background: linear-gradient(90deg, #e94560, #0f3460); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p { font-size: 13px; color: #999; margin-bottom: 16px; }
-        textarea { width: 100%; height: 260px; background: #0f3460; color: #e2e2e2; border: 1px solid #333; border-radius: 8px; padding: 12px; font-family: 'Consolas', monospace; font-size: 13px; resize: vertical; }
-        textarea:focus { outline: none; border-color: #e94560; }
-        button { margin-top: 12px; padding: 10px 24px; background: linear-gradient(135deg, #e94560, #c23152); color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; transition: transform 0.15s; }
-        button:hover { transform: scale(1.03); }
-        .status { margin-top: 12px; font-size: 13px; color: #e94560; min-height: 20px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🎫 Voucher Ticket Generator</h1>
-        <p>วาง JSON Array ของ ticket แล้วกด Generate เพื่อเปิด HTML ใน Tab ใหม่</p>
-        <textarea id="jsonInput">[
-  {"voucher_code": "abc123", "profile_name": "AAPICO_Day", "concurrent_devices": 1, "period": "1Days", "maximum_download_rate": "20Mbps"},
-  {"voucher_code": "xyz789", "profile_name": "AAPICO_Day", "concurrent_devices": 1, "period": "7Days", "maximum_download_rate": "50Mbps"}
-]</textarea>
-        <button onclick="generate()">🖨️ Generate & Print</button>
-        <div class="status" id="status"></div>
-    </div>
-    <script>
-        async function generate() {
-            const status = document.getElementById('status');
-            const input = document.getElementById('jsonInput').value;
-            try {
-                const data = JSON.parse(input);
-                status.textContent = '⏳ Generating...';
-                const res = await fetch('/SOS/generate-ticket', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (!res.ok) throw new Error(await res.text());
-                const html = await res.text();
-                const win = window.open('', '_blank');
-                win.document.write(html);
-                win.document.close();
-                status.textContent = '✅ Opened in new tab!';
-            } catch (e) {
-                status.textContent = '❌ ' + e.message;
-            }
-        }
-    </script>
-</body>
-</html>
-    """)
+    try:
+        template = jinja_env.get_template("new_vocher_portal.html")
+        html_content = template.render()
+        return HTMLResponse(content=html_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Template render error: {str(e)}")
 
 
 # ==========================================
