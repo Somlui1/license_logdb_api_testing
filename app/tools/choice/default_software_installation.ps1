@@ -1,5 +1,3 @@
-# MetaName: Default Software Installation
-# MetaPriority: 1.0
 <# 
 .SYNOPSIS 
     IT Support Component: Default Software Installation (installer.7z)
@@ -48,7 +46,7 @@ $Script:DownloaderExe = Join-Path $Script:ToolsDir "fast_downloader.exe"
 $Script:DownloaderThreads = 8
 #C:\Users\wajeepradit.p\git\installer\program\launcher.ps1
 # --- API Server (for fast_downloader.exe bootstrap) ---
-$Script:ComponentDownloadUrl = "http://10.10.3.215:8181/tools/cli-tools/component/download"
+$Script:ComponentDownloadUrl = "http://localhost:8000/tools/cli-tools/component/download"
 $Script:DownloaderUrl = "$Script:ComponentDownloadUrl/fast_downloader.exe"
 
 # ===========================================================================
@@ -135,14 +133,21 @@ function Install-DefaultSoftware {
         try {
             # fast_downloader.exe auto-negotiates FTPS/TLS for ftp:// URLs
             # CLI: fast_downloader.exe <URL> -u <username> -p <password> -o <filename> -d <directory>
-            & $Script:DownloaderExe $Script:FtpInstallerUrl `
-                -u $Script:FtpUsername `
-                -p $Script:FtpPassword `
-                -o $Script:ComponentFile `
-                -d $Script:ComponentDir
+            # Use Start-Process -NoNewWindow so the exe inherits the real console
+            # and its Rich progress bar renders correctly in the terminal.
+            $dlArgs = @(
+                $Script:FtpInstallerUrl,
+                "-u", $Script:FtpUsername,
+                "-p", $Script:FtpPassword,
+                "-o", $Script:ComponentFile,
+                "-d", $Script:ComponentDir
+            )
+            $dlProc = Start-Process -FilePath $Script:DownloaderExe `
+                -ArgumentList $dlArgs `
+                -NoNewWindow -Wait -PassThru
 
-            if ($LASTEXITCODE -ne 0) {
-                throw "fast_downloader.exe exited with code $LASTEXITCODE"
+            if ($dlProc.ExitCode -ne 0) {
+                throw "fast_downloader.exe exited with code $($dlProc.ExitCode)"
             }
 
             if (-not (Test-Path $archivePath)) {
@@ -194,14 +199,20 @@ function Install-DefaultSoftware {
 
         try {
             # Download 7-Zip installer via FTPS using fast_downloader.exe
-            & $Script:DownloaderExe $Script:Ftp7ZipUrl `
-                -u $Script:FtpUsername `
-                -p $Script:FtpPassword `
-                -o $Script:7ZipInstallerFile `
-                -d $Script:ComponentDir
+            # Use Start-Process -NoNewWindow so progress bar renders in terminal
+            $dl7zArgs = @(
+                $Script:Ftp7ZipUrl,
+                "-u", $Script:FtpUsername,
+                "-p", $Script:FtpPassword,
+                "-o", $Script:7ZipInstallerFile,
+                "-d", $Script:ComponentDir
+            )
+            $dl7zProc = Start-Process -FilePath $Script:DownloaderExe `
+                -ArgumentList $dl7zArgs `
+                -NoNewWindow -Wait -PassThru
 
-            if ($LASTEXITCODE -ne 0) {
-                throw "fast_downloader.exe exited with code $LASTEXITCODE"
+            if ($dl7zProc.ExitCode -ne 0) {
+                throw "fast_downloader.exe exited with code $($dl7zProc.ExitCode)"
             }
 
             if (-not (Test-Path $7zInstallerPath)) {
