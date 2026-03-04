@@ -1,4 +1,4 @@
-<# 
+﻿<# 
 .SYNOPSIS 
     IT Support Component: Default Software Installation (installer.7z)
 .DESCRIPTION 
@@ -263,6 +263,8 @@ function Install-DefaultSoftware {
 
     # ------------------------------------------------------------------
     #  Step 5: Extract installer.7z to component directory
+    #          Uses & (call operator) to run 7z.exe directly so the
+    #          native CLI output is shown as-is in the terminal.
     # ------------------------------------------------------------------
     Write-Host ""
     Write-Host "  [Step 5/6] Extracting $($Script:ComponentFile) ..." -ForegroundColor Yellow
@@ -275,12 +277,14 @@ function Install-DefaultSoftware {
         Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    # Create the extraction subfolder: component/{zipfilename}/
+    # Create the extraction subfolder
     New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
 
     try {
-        # 7z x = extract with full paths, -o = output dir (into subfolder), -y = auto-yes
-        & $7zPath x "$archivePath" -o"$extractDir" -y
+        # 7z x = extract with full paths, -o = output dir, -y = auto-yes
+        # & (call operator) passes stdout/stderr directly to the console
+        # so 7-Zip's native output is displayed in every terminal mode.
+        & $7zPath x "$archivePath" "-o$extractDir" -y
 
         if ($LASTEXITCODE -ne 0) {
             throw "7-Zip extraction exited with code $LASTEXITCODE"
