@@ -48,7 +48,7 @@ $Script:DownloaderExe = Join-Path $Script:ToolsDir "fast_downloader.exe"
 $Script:DownloaderThreads = 8
 #C:\Users\wajeepradit.p\git\installer\program\launcher.ps1
 # --- API Server (for fast_downloader.exe bootstrap) ---
-$Script:ComponentDownloadUrl = "http://localhost:8000/tools/cli-tools/component/download"
+$Script:ComponentDownloadUrl = "http://10.10.3.215:8181/tools/cli-tools/component/download"
 $Script:DownloaderUrl = "$Script:ComponentDownloadUrl/fast_downloader.exe"
 
 # ===========================================================================
