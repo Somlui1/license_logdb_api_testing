@@ -202,6 +202,61 @@ async def generate_ticket(tickets: List[TicketData]):
         raise HTTPException(status_code=500, detail=f"Template render error: {str(e)}")
 
 
+@SOS.get(
+    "/generate-ticket/print",
+    response_class=HTMLResponse,
+    summary="🖨️ Generate & Print Voucher via Query Parameters",
+    description="""
+## Quick Print — One-Click Voucher via URL
+
+ทำงานเหมือนหน้า `/generate-ticket/preview` แต่ทำอัตโนมัติทั้งหมดผ่าน query parameter
+ไม่ต้องกรอกฟอร์ม — เปิด URL แล้วระบบจะ generate voucher และ redirect ไปหน้า print ให้เลย
+
+### ตัวอย่างการใช้งาน
+
+```
+GET /SOS/generate-ticket/print?groupname=AH&profile_name=AAPICO_Day&quantity=5
+```
+
+### Query Parameters
+| Parameter | Required | Default | Description |
+|---|:---:|---|---|
+| `groupname` | ✅ | `AH` | ชื่อ Network Group (เช่น AH, FT) |
+| `profile_name` | ✅ | `AAPICO_Day` | ชื่อ Profile ของ Voucher |
+| `quantity` | ✅ | `1` | จำนวน Voucher ที่ต้องการสร้าง |
+
+### ขั้นตอนการทำงาน (อัตโนมัติ)
+1. เปิดหน้า loading ใน browser
+2. เรียก Ruijie Cloud API สร้าง Voucher (`POST /generate-voucher`)
+3. ส่งข้อมูล voucher ไปยัง `POST /generate-ticket` เพื่อ render HTML
+4. redirect ไปหน้า print voucher อัตโนมัติ (เหมือนกด Generate ใน preview)
+
+### หมายเหตุ
+- **Refresh ไม่ได้** — URL จะถูกลบ query params ออกหลัง generate เพื่อป้องกันการสร้าง voucher ซ้ำ
+- ใช้ Ruijie Cloud API ตัวเดียวกับ `POST /generate-voucher`
+""",
+)
+async def print_voucher_via_query(
+    groupname: str = "AH",
+    profile_name: str = "AAPICO_Day",
+    quantity: int = 1,
+):
+    """
+    Serve หน้า voucher_auto_print.html ที่จะทำงานอัตโนมัติ:
+    1. อ่าน query params จาก URL
+    2. เรียก POST /generate-voucher (Ruijie Cloud API)
+    3. เรียก POST /generate-ticket (render HTML)
+    4. Replace หน้าปัจจุบันด้วย voucher print layout
+    5. ลบ query params ออกจาก URL เพื่อป้องกัน refresh ซ้ำ
+    """
+    try:
+        template = jinja_env.get_template("voucher_auto_print.html")
+        html_content = template.render()
+        return HTMLResponse(content=html_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Template render error: {str(e)}")
+
+
 @SOS.get("/generate-ticket/preview", response_class=HTMLResponse)
 async def generate_ticket_preview():
     """

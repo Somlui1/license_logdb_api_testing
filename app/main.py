@@ -6,10 +6,10 @@ from .routers.server_logs import router as server_logs_router
 from .routers.SOS import SOS
 from .routers.testing import app
 from .routers.thai_karaoke import router as thai_karaoke_router
-from .routers.download import router as download_router
+from .routers.tools import router as tools_router
 
 app.include_router(watchguard_router)
 app.include_router(server_logs_router)
 app.include_router(SOS)
 app.include_router(thai_karaoke_router)
-app.include_router(download_router)
+app.include_router(tools_router)
