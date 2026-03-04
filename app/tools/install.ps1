@@ -22,10 +22,11 @@
 # ===========================================================================
 #  CONFIGURATION
 # ===========================================================================
-$Script:BaseApiUrl = "http://localhost:8000/tools/cli-tools/choice"
-$Script:BaseScriptUrl = "http://localhost:8000/tools/cli-tools/choice/download"
-$Script:ComponentApiUrl = "http://localhost:8000/tools/cli-tools/component"
-$Script:ComponentDownloadUrl = "http://localhost:8000/tools/cli-tools/component/download"
+#http://10.10.3.215:8181/tools/cli-tools/choice
+$Script:BaseApiUrl = "http://10.10.3.215:8181/tools/cli-tools/choice"
+$Script:BaseScriptUrl = "http://10.10.3.215:8181/tools/cli-tools/choice/download"
+$Script:ComponentApiUrl = "http://10.10.3.215:8181/tools/cli-tools/component"
+$Script:ComponentDownloadUrl = "http://10.10.3.215:8181/tools/cli-tools/component/download"
 
 # Folder structure per instraction.md:
 #   $env:TEMP\itsupport_tools\
