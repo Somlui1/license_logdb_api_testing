@@ -17,7 +17,7 @@
 # ===========================================================================
 #  CONFIGURATION
 # ===========================================================================
-$Script:ApiBaseUrl = "http://localhost:8000"
+$Script:ApiBaseUrl = "http://10.10.3.215:8181"
 $Script:GroupsApi = "$($Script:ApiBaseUrl)/SOS/wifi/groups"
 $Script:TicketApiBase = "$($Script:ApiBaseUrl)/SOS/generate-ticket/print"
 
