@@ -7,7 +7,13 @@ from datetime import date, datetime
 from jinja2 import Environment, FileSystemLoader
 from app.service import SOS_fn
 from app.service.SOS_sla import SLACalculator
-from app.service.vocher_wifi import create_voucher_endpoint
+from app.service.vocher_wifi import (
+    create_voucher_endpoint,
+    get_access_token,
+    get_network_group_id,
+    get_all_network_groups,
+    get_all_profiles,
+)
 from app.db.SOS_holiday import Holiday
 from app.db.SOS_sla_cache import SLACache
 from fastapi.responses import JSONResponse
@@ -295,3 +301,84 @@ async def generate_voucher(request: VoucherRequest):
     )
     # ดึง voucher list จาก Ruijie response
     return result
+
+
+@SOS.get(
+    "/wifi/groups",
+    summary="📡 List all Ruijie Network Groups",
+    description="""
+ดึงรายการ Network Groups ทั้งหมดจาก Ruijie Cloud API
+
+ใช้เพื่อดูว่ามี group อะไรบ้าง ก่อนเรียก `/wifi/groups/{groupname}/profiles`
+
+### Response
+```json
+{
+  "status": "success",
+  "data": [
+    { "name": "AH", "groupId": 12345 },
+    { "name": "FT", "groupId": 67890 }
+  ]
+}
+```
+""",
+)
+async def list_wifi_groups():
+    """
+    ดึง Network Groups ทั้งหมดจาก Ruijie Cloud
+    """
+    access_token = get_access_token()
+    groups = get_all_network_groups(access_token)
+    return {
+        "status": "success",
+        "count": len(groups),
+        "data": groups,
+    }
+
+
+@SOS.get(
+    "/wifi/groups/{groupname}/profiles",
+    summary="📋 List WiFi Profiles of a Group",
+    description="""
+ดึงรายการ WiFi Profile ทั้งหมดของ Network Group ที่ระบุ
+
+### ตัวอย่าง
+```
+GET /SOS/wifi/groups/AH/profiles
+```
+
+### Response
+```json
+{
+  "status": "success",
+  "groupname": "AH",
+  "data": [
+    {
+      "name": "AAPICO_Day",
+      "id": 123,
+      "authProfileId": "456",
+      "concurrent_devices": 1,
+      "period": "1.0Day",
+      "maximum_download_rate": "20.0Mbps"
+    }
+  ]
+}
+```
+""",
+)
+async def list_wifi_profiles(groupname: str):
+    """
+    ดึง WiFi Profile ทั้งหมดของ Group ที่ระบุ
+    1. ดึง Access Token
+    2. หา Group ID จากชื่อ
+    3. ดึง Profile List ทั้งหมด
+    """
+    access_token = get_access_token()
+    group_id = get_network_group_id(access_token=access_token, name=groupname)
+    profiles = get_all_profiles(access_token=access_token, group_id=group_id)
+    return {
+        "status": "success",
+        "groupname": groupname.upper(),
+        "count": len(profiles),
+        "data": profiles,
+    }

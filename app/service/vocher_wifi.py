@@ -90,6 +90,76 @@ def get_profile_list_exact(access_token: str, group_id: int, profile_name: str) 
         raise HTTPException(status_code=502, detail={"step": "3_get_profile", "error": "เกิดข้อผิดพลาดในการดึง Profile List", "server_msg": error_detail})
 
 
+def get_all_network_groups(access_token: str) -> list:
+    """
+    ดึง Network Groups ทั้งหมดจาก Ruijie Cloud API
+    Returns: list ของ dict {name, groupId}
+    """
+    url = "https://cloud-as.ruijienetworks.com/service/api/group/single/tree"
+    headers = {"Content-Type": "application/json"}
+    params = {"depth": "BUILDING", "access_token": access_token}
+
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+
+        groups_data = response.json().get("groups", {})
+        subgroups_1 = groups_data.get("subGroups", [])
+        if not subgroups_1:
+            raise HTTPException(status_code=404, detail={"step": "list_groups", "error": "ไม่พบข้อมูล SubGroups จาก Ruijie"})
+
+        subgroups_2 = subgroups_1[0].get("subGroups", [])
+        result = []
+        for g in subgroups_2:
+            result.append({
+                "name": g.get("name", ""),
+                "groupId": g.get("groupId"),
+            })
+
+        return result
+
+    except requests.exceptions.RequestException as e:
+        error_detail = e.response.text if hasattr(e, 'response') and e.response is not None else str(e)
+        raise HTTPException(status_code=502, detail={"step": "list_groups", "error": "เกิดข้อผิดพลาดในการดึง Network Groups", "server_msg": error_detail})
+
+
+def get_all_profiles(access_token: str, group_id: int) -> list:
+    """
+    ดึง WiFi Profile ทั้งหมดของ Network Group ที่ระบุ
+    Returns: list ของ profile dict
+    """
+    url = f"https://cloud-as.ruijienetworks.com/service/api/intl/usergroup/list/{group_id}"
+    headers = {"Content-Type": "application/json"}
+    params = {"pageIndex": 0, "pageSize": 999999, "access_token": access_token}
+
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+
+        profile_list = response.json().get("data", [])
+        result = []
+        for p in profile_list:
+            period_minutes = p.get("timePeriod", 0)
+            period_day = period_minutes / 60 / 24 if period_minutes else 0
+            download_kbps = p.get("downloadRateLimit", 0)
+            mbps_rate = download_kbps / 1024 if download_kbps else 0
+
+            result.append({
+                "name": p.get("name", ""),
+                "id": p.get("id"),
+                "authProfileId": p.get("authProfileId"),
+                "concurrent_devices": p.get("noOfDevice", 1),
+                "period": f"{round(period_day, 1)}Day",
+                "maximum_download_rate": f"{round(mbps_rate, 1)}Mbps",
+            })
+
+        return result
+
+    except requests.exceptions.RequestException as e:
+        error_detail = e.response.text if hasattr(e, 'response') and e.response is not None else str(e)
+        raise HTTPException(status_code=502, detail={"step": "list_profiles", "error": "เกิดข้อผิดพลาดในการดึง Profile List", "server_msg": error_detail})
+
+
 def generate_vocher(access_token: str, group_id: int, profile_id: str, quantity: int, user_group_id: int) -> dict:
     url = f"https://cloud-as.ruijienetworks.com/service/api/open/auth/voucher/create/{group_id}"
     headers = {"Content-Type": "application/json"}
