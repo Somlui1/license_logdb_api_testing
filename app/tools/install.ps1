@@ -370,7 +370,7 @@ function Invoke-ChoiceExecution {
     # Step 2: Execute the choice script
     try {
         Show-Status -Message "Executing: $fileName ..." -Type "INFO"
-        & $scriptPath
+        & $scriptPath | Out-Host
 
         $result.Status = "OK"
         $result.Details = "Installed successfully"
