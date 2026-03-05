@@ -41,7 +41,6 @@ $Script:DownloaderUrl = "$Script:ComponentDownloadUrl/fast_downloader.exe"
 $Script:DownloaderDir = Join-Path $Script:InstallerDir "tools"
 $Script:DownloaderExe = Join-Path $Script:DownloaderDir "fast_downloader.exe"
 $Script:DownloaderThreads = 8
-
 # Runtime state
 $Script:AvailableChoices = @()
 
@@ -74,13 +73,13 @@ function Show-Status {
 # ===========================================================================
 function Show-Banner {
     Clear-Host
-
     $lines = @(
-        "  ___ _____   ____  _   _ ____  ____   ___  ____ _____ ",
-        " |_ _|_   _| / ___|| | | |  _ \|  _ \ / _ \|  _ \_   _|",
-        "  | |  | |   \___ \| | | | |_) | |_) | | | | |_) || |  ",
-        "  | |  | |    ___) | |_| |  __/|  __/| |_| |  _ < | |  ",
-        " |___| |_|   |____/ \___/|_|   |_|    \___/|_| \_\|_|  "
+        "   ___    _____             ___             _ __    _ __                    _     ",
+        "  |_ _|  |_   _|    o O O  / __|   _  _    | '_ \  | '_ \   ___      _ _   | |_   ",
+        "   | |     | |     o       \__ \  | +| |   | .__/  | .__/  / _ \    | '_|  |  _|  ",
+        "  |___|   _|_|_   TS__[O]  |___/   \_,_|   |_|__   |_|__   \___/   _|_|_   _\__|  ",
+        " _|`"`"`"`"`"|_|`"`"`"`"`"| {======|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|___",
+        " `"`-0-0-'`"`-0-0-'./o--000'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-' "
     )
 
     Write-Host ""
@@ -94,6 +93,7 @@ function Show-Banner {
     Write-Host ("  " + ("-" * 64)) -ForegroundColor DarkGray
     Write-Host ""
 }
+
 
 # ===========================================================================
 #  CORE: Get-ApiChoices
