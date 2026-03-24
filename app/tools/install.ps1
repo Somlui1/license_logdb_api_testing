@@ -1,24 +1,4 @@
-<#
-.SYNOPSIS
-    IT Support Tools Bootstrapper Installer v2.0.0
-.DESCRIPTION
-    Interactive installer that runs in memory via: irm https://ollama.com/install.ps1 | iex
-    Presents a multi-select menu populated dynamically via API,
-    downloads choice scripts based on selection, and executes them sequentially sorted by priority.
-
-    Workflow (from instraction.md):
-      1. Create folder structure: $env:TEMP\itsupport_tools\{choice, component}
-      2. Query API for available choice scripts
-      3. Present interactive CLI menu for multi-select
-      4. For each selected choice: check local cache -> download if missing -> execute
-      5. Execute sequentially sorted by priority (lower number = higher priority)
-      6. Show progress bar and summary report
-
-.NOTES
-    Author : IT Support DevOps Team
-    Version: 2.0.0
-#>
-
+﻿
 # ===========================================================================
 #  CONFIGURATION
 # ===========================================================================
@@ -73,18 +53,18 @@ function Show-Status {
 # ===========================================================================
 function Show-Banner {
     Clear-Host
-    $lines = @(
-        "   ___    _____             ___             _ __    _ __                    _     ",
-        "  |_ _|  |_   _|    o O O  / __|   _  _    | '_ \  | '_ \   ___      _ _   | |_   ",
-        "   | |     | |     o       \__ \  | +| |   | .__/  | .__/  / _ \    | '_|  |  _|  ",
-        "  |___|   _|_|_   TS__[O]  |___/   \_,_|   |_|__   |_|__   \___/   _|_|_   _\__|  ",
-        " _|`"`"`"`"`"|_|`"`"`"`"`"| {======|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|_|`"`"`"`"`"|___",
-        " `"`-0-0-'`"`-0-0-'./o--000'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-'`"`-0-0-' "
-    )
-
+  
+$lines = @(
+    ' ██╗████████╗    ███████╗██╗   ██╗██████╗ ██████╗  ██████╗ ██████╗ ████████╗',
+    ' ██║╚══██╔══╝    ██╔════╝██║   ██║██╔══██╗██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝',
+    ' ██║   ██║       ███████╗██║   ██║██████╔╝██████╔╝██║   ██║██████╔╝   ██║   ',
+    ' ██║   ██║       ╚════██║██║   ██║██╔═══╝ ██╔═══╝ ██║   ██║██╔══██╗   ██║   ',
+    ' ██║   ██║       ███████║╚██████╔╝██║     ██║     ╚██████╔╝██║  ██║   ██║   ',
+    ' ╚═╝   ╚═╝       ╚══════╝ ╚═════╝ ╚═╝     ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   '
+)
     Write-Host ""
     foreach ($line in $lines) {
-        Write-Host "  $line" -ForegroundColor Cyan
+        Write-Host "  $line" -ForegroundColor blue
     }
     Write-Host ""
     Write-Host "  Bootstrapper Installer v2.0" -ForegroundColor DarkCyan
