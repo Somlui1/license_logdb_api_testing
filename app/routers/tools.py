@@ -2,19 +2,20 @@ import re
 import logging
 from pathlib import Path
 from typing import Optional
-
+import os
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
-
+from fastapi.responses import HTMLResponse
 from ..schema.tools_validate import ScriptItem, ScriptsResponse, ComponentItem, ComponentsResponse
-
+from jinja2 import Environment, FileSystemLoader
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/tools",
     tags=["tools"],
 )
-
+TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "component")
+jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 # ─────────────────────────────────────────────
 # Config
 # ─────────────────────────────────────────────
@@ -123,7 +124,7 @@ _INSTALL_DESCRIPTION = """
 เปิด **PowerShell** (แนะนำ Run as Administrator) แล้วรันคำสั่ง:
 
 ```powershell
-irm https://<your-server>/tools/cli-tools/install | iex
+irm http://10.10.3.215:8181/tools/cli-tools/install | iex
 ```
 
 > เปลี่ยน `<your-server>` เป็น hostname หรือ IP ของ server จริง เช่น `10.10.3.215:8000`
@@ -329,3 +330,17 @@ async def download_component(filename: str):
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+@router.get("/kaizen/preview", response_class=HTMLResponse)
+async def generate_ticket_preview():
+    """
+    หน้า Form สำหรับทดสอบ generate-ticket
+    - วาง JSON → กด Generate → เปิด HTML ใน Tab ใหม่
+    """
+    try:
+        template = jinja_env.get_template("kaizen_application.html")
+        html_content = template.render()
+        return HTMLResponse(content=html_content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Template render error: {str(e)}")
