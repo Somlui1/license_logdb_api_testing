@@ -14,3 +14,6 @@ psycopg2-binary
 aiohttp
 pythainlp
 jinja2
+mcp
+fastapi-mcp
+mysql
