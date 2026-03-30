@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
-from .routers.tools import router as tools_router
-from fastapi import FastAPI
+from .routers.testing import app
+from .routers.MCP import init_mcp_servers
 
-app = FastAPI()
-app.include_router(tools_router)
+# Initialize all multiple MCP sub-servers dynamically
+init_mcp_servers(app)
