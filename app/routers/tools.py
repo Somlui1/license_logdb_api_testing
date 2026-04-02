@@ -22,6 +22,7 @@ jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_DIR))
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "tools" / "choice"
 COMPONENT_DIR = Path(__file__).resolve().parent.parent / "tools" / "component"
 INSTALL_SCRIPT = Path(__file__).resolve().parent.parent / "tools" / "install.ps1"
+MCP_TOOLS_DIR = Path(__file__).resolve().parent.parent / "mcp_tools"
 
 # นามสกุลไฟล์ที่อนุญาต (เพิ่มเติมได้ในอนาคต)
 ALLOWED_EXTENSIONS: set[str] = {".ps1", ".cmd", ".bat", ".py", ".js"}
@@ -344,3 +345,30 @@ async def generate_ticket_preview():
         return HTMLResponse(content=html_content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template render error: {str(e)}")
+@router.get(
+    "/mcp-proxy/download",
+    summary="Download MCP Proxy tool",
+    description="ดาวน์โหลดตัว mcp-proxy.exe สำหรับใช้งานกับ MCP",
+    response_class=FileResponse,
+)
+async def download_mcp_proxy():
+    """
+    ดาวน์โหลด mcp-proxy.exe (ตัวรัน proxy ระหว่าง Client กับ Server)
+    """
+    file_path = MCP_TOOLS_DIR / "mcp-proxy.exe"
+
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="mcp-proxy.exe not found on server",
+        )
+
+    return FileResponse(
+        path=str(file_path),
+        filename="mcp-proxy.exe",
+        media_type="application/octet-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Content-Disposition": 'attachment; filename="mcp-proxy.exe"',
+        },
+    )

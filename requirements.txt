@@ -12,3 +12,4 @@ jinja2
 mcp
 fastapi-mcp
 fastmcp
+mysql
