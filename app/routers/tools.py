@@ -124,7 +124,7 @@ _INSTALL_DESCRIPTION = """
 เปิด **PowerShell** (แนะนำ Run as Administrator) แล้วรันคำสั่ง:
 
 ```powershell
-irm http://10.10.3.215:8181/tools/cli-tools/install | iex
+irm http://10.10.3.215:8181/tools/cli-tools/install.ps1 | iex
 ```
 
 > เปลี่ยน `<your-server>` เป็น hostname หรือ IP ของ server จริง เช่น `10.10.3.215:8000`
@@ -157,7 +157,7 @@ irm http://10.10.3.215:8181/tools/cli-tools/install | iex
 
 
 @router.get(
-    "/cli-tools/install.exe",
+    "/cli-tools/install.ps1",
     summary="🚀 IT Support Tools Bootstrapper — irm | iex",
     description=_INSTALL_DESCRIPTION,
     response_class=PlainTextResponse,
