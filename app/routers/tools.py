@@ -157,7 +157,7 @@ irm http://10.10.3.215:8181/tools/cli-tools/install | iex
 
 
 @router.get(
-    "/cli-tools/install",
+    "/cli-tools/install.exe",
     summary="🚀 IT Support Tools Bootstrapper — irm | iex",
     description=_INSTALL_DESCRIPTION,
     response_class=PlainTextResponse,

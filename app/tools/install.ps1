@@ -1,32 +1,21 @@
-﻿# ===========================================================================
-#  CONFIGURATION
-# ===========================================================================
-#http://10.10.3.215:8181/tools/cli-tools/choice
+
 $Script:BaseApiUrl = "http://10.10.3.215:8181/tools/cli-tools/choice"
 $Script:BaseScriptUrl = "http://10.10.3.215:8181/tools/cli-tools/choice/download"
 $Script:ComponentApiUrl = "http://10.10.3.215:8181/tools/cli-tools/component"
 $Script:ComponentDownloadUrl = "http://10.10.3.215:8181/tools/cli-tools/component/download"
 
-# Folder structure per instraction.md:
-#   $env:TEMP\itsupport_tools\
-#   ├── choice\        <- downloaded choice scripts live here
-#   └── component\     <- reserved for component assets
 $Script:InstallerDir = Join-Path $env:TEMP "itsupport_tools"
 $Script:ChoiceDir = Join-Path $Script:InstallerDir "choice"
 $Script:ComponentDir = Join-Path $Script:InstallerDir "component"
 
-# Fast Downloader configuration
 $Script:DownloaderUrl = "$Script:ComponentDownloadUrl/fast_downloader.exe"
 $Script:DownloaderDir = Join-Path $Script:InstallerDir "tools"
 $Script:DownloaderExe = Join-Path $Script:DownloaderDir "fast_downloader.exe"
 $Script:DownloaderThreads = 8
-# Runtime state
+
 $Script:AvailableChoices = @()
 
-# ===========================================================================
-#  HELPER: Show-Status
-#  Prints color-coded messages: INFO=Yellow, SUCCESS=Green, ERROR=Red, HINT=Gray
-# ===========================================================================
+
 function Show-Status {
     param(
         [Parameter(Mandatory)]
@@ -46,22 +35,22 @@ function Show-Status {
     Start-Sleep -Milliseconds 300
 }
 
-# ===========================================================================
-#  HELPER: Show-Banner
-#  Displays the branded IT SUPPORT header.
-# ===========================================================================
 function Show-Banner {
     Clear-Host
   
     $lines = @(
-        " ██╗████████╗    ███████╗██╗   ██╗██████╗ ██████╗  ██████╗ ██████╗ ████████╗",
-        " ██║╚══██╔══╝    ██╔════╝██║   ██║██╔══██╗██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝",
-        " ██║   ██║       ███████╗██║   ██║██████╔╝██████╔╝██║   ██║██████╔╝   ██║   ",
-        " ██║   ██║       ╚════██║██║   ██║██╔═══╝ ██╔═══╝ ██║   ██║██╔══██╗   ██║   ",
-        " ██║   ██║       ███████║╚██████╔╝██║     ██║     ╚██████╔╝██║  ██║   ██║   ",
-        " ╚═╝   ╚═╝       ╚══════╝ ╚═════╝ ╚═╝     ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   "
+        '                                                                                                    ',
+        '88  888888888888     ad88888ba   88        88  88888888ba   88888888ba     ,ad8888ba,    88888888ba  888888888888  ',
+        '88       88          d8"     "8b  88        88  88      "8b  88      "8b   d8"''    `"8b   88      "8b      88        ',
+        '88       88          Y8,          88        88  88      ,8P  88      ,8P  d8''        `8b  88      ,8P      88        ',
+        '88       88          `Y8aaaaa,    88        88  88aaaaaa8P''  88aaaaaa8P''  88          88  88aaaaaa8P''      88        ',
+        '88       88            `"""""8b,  88        88  88""""""''    88""""""''    88          88  88""""88''        88        ',
+        '88       88                  `8b  88        88  88           88           Y8,        ,8P  88    `8b        88        ',
+        '88       88          Y8a     a8P  Y8a.    .a8P  88           88            Y8a.    .a8P   88     `8b       88        ',
+        '88       88           "Y88888P"    `"Y8888Y"''   88           88             `"Y8888Y"''    88      `8b      88        ',
+        '                                                                                                    '
     )
-    Write-Host ""
+
     foreach ($line in $lines) {
         Write-Host "  $line" -ForegroundColor blue
     }
@@ -74,11 +63,7 @@ function Show-Banner {
 }
 
 
-# ===========================================================================
-#  CORE: Get-ApiChoices
-#  Calls the real API to retrieve the list of available choice scripts.
-#  Returns the parsed JSON response (status, message, data[]).
-# ===========================================================================
+
 function Get-ApiChoices {
     Show-Status -Message "Contacting API: $Script:BaseApiUrl ..." -Type "INFO"
     try {
@@ -90,13 +75,6 @@ function Get-ApiChoices {
     }
 }
 
-# ===========================================================================
-#  CORE: Fetch-AvailableChoices
-#  Retrieves the list of installable choices from the API.
-#  Populates $Script:AvailableChoices.
-#
-#  Returns: $true on success, $false on failure.
-# ===========================================================================
 function Fetch-AvailableChoices {
     try {
         $response = Get-ApiChoices
@@ -117,20 +95,6 @@ function Fetch-AvailableChoices {
     }
 }
 
-# ===========================================================================
-#  CORE: Invoke-InteractiveMenu
-#  Multi-select menu with keyboard navigation.
-#
-#  Controls:
-#    Up/Down   Navigate
-#    Space     Toggle  [*] / [ ]
-#    A         Select All
-#    N         Deselect All (None)
-#    Enter     Confirm
-#
-#  Accepts: array of choice objects (each has .name, .script, .priority)
-#  Returns: array of selected choice objects
-# ===========================================================================
 function Invoke-InteractiveMenu {
     param(
         [Parameter(Mandatory)]
@@ -144,12 +108,12 @@ function Invoke-InteractiveMenu {
     $currentIndex = 0
     $done = $false
 
-    # Hide cursor for clean UX
+
     [Console]::CursorVisible = $false
 
     try {
         while (-not $done) {
-            # -- Draw --
+        
             Clear-Host
             Show-Banner
 
@@ -159,7 +123,7 @@ function Invoke-InteractiveMenu {
             Write-Host ""
 
             for ($i = 0; $i -lt $ChoicesList.Count; $i++) {
-                # Checkbox state
+                
                 $checkbox = "[ ]"
                 $checkColor = "DarkGray"
                 if ($selection.ContainsKey($i)) {
@@ -171,7 +135,7 @@ function Invoke-InteractiveMenu {
                 $displayPriority = $ChoicesList[$i].priority
 
                 if ($i -eq $currentIndex) {
-                    # Highlighted row
+                    
                     Write-Host "  > " -NoNewline -ForegroundColor Cyan
                     Write-Host "$checkbox " -NoNewline -ForegroundColor $checkColor -BackgroundColor DarkGray
                     Write-Host " $displayName " -NoNewline -ForegroundColor Black -BackgroundColor DarkGray
@@ -184,28 +148,28 @@ function Invoke-InteractiveMenu {
                 }
             }
 
-            # Footer: count
+            
             $selectedCount = $selection.Count
             Write-Host ""
             Write-Host "  $selectedCount of $($ChoicesList.Count) selected" -ForegroundColor DarkGray
             Write-Host ""
 
-            # -- Read Key --
+            
             $key = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 
             switch ($key.VirtualKeyCode) {
                 38 {
-                    # Up Arrow - wrap to bottom
+                    
                     if ($currentIndex -gt 0) { $currentIndex-- }
                     else { $currentIndex = $ChoicesList.Count - 1 }
                 }
                 40 {
-                    # Down Arrow - wrap to top
+                    
                     if ($currentIndex -lt ($ChoicesList.Count - 1)) { $currentIndex++ }
                     else { $currentIndex = 0 }
                 }
                 32 {
-                    # Space - toggle selection
+                    
                     if ($selection.ContainsKey($currentIndex)) {
                         $selection.Remove($currentIndex)
                     }
@@ -214,17 +178,17 @@ function Invoke-InteractiveMenu {
                     }
                 }
                 65 {
-                    # A - Select All
+                    
                     for ($j = 0; $j -lt $ChoicesList.Count; $j++) {
                         $selection[$j] = $true
                     }
                 }
                 78 {
-                    # N - Deselect All
+                    
                     $selection.Clear()
                 }
                 13 {
-                    # Enter - confirm
+                    
                     $done = $true
                 }
             }
@@ -234,17 +198,17 @@ function Invoke-InteractiveMenu {
         [Console]::CursorVisible = $true
     }
 
-    # Return the selected choice objects
+    
     return $selection.Keys | Sort-Object | ForEach-Object { $ChoicesList[$_] }
 }
 
-# ===========================================================================
-#  CORE: Ensure-FastDownloader
-#  Ensures fast_downloader.exe is available locally.
-#  Downloads from the component API if not cached.
-#
-#  Returns: $true if available, $false on failure.
-# ===========================================================================
+
+
+
+
+
+
+
 function Ensure-FastDownloader {
     if (Test-Path $Script:DownloaderExe) {
         Show-Status -Message "Fast Downloader found (cached)" -Type "HINT"
@@ -267,14 +231,14 @@ function Ensure-FastDownloader {
     }
 }
 
-# ===========================================================================
-#  CORE: Get-ChoiceScript
-#  Ensures a choice .ps1 is available locally in the choice folder.
-#  - If the file already exists locally, it uses the cached version.
-#  - If not, it downloads from the API server.
-#
-#  Returns: local file path, or $null on failure.
-# ===========================================================================
+
+
+
+
+
+
+
+
 function Get-ChoiceScript {
     param(
         [Parameter(Mandatory)][string]$FileName,
@@ -283,13 +247,13 @@ function Get-ChoiceScript {
 
     $localPath = Join-Path $Script:ChoiceDir $FileName
 
-    # Cache check — if the script already exists, skip download
+    
     if (Test-Path $localPath) {
         Show-Status -Message "Cached: $FileName (using local copy)" -Type "HINT"
         return $localPath
     }
 
-    # Download from real API
+    
     $remoteUrl = "$($Script:BaseScriptUrl)/$FileName"
     Show-Status -Message "Downloading: $FileName from $remoteUrl ..." -Type "INFO"
 
@@ -307,7 +271,7 @@ function Get-ChoiceScript {
         Show-Status -Message "Download failed for $FileName" -Type "ERROR"
         Show-Status -Message "$($_.Exception.Message)" -Type "HINT"
 
-        # Cleanup partial download
+        
         if (Test-Path $localPath) {
             Remove-Item $localPath -Force -ErrorAction SilentlyContinue
         }
@@ -315,12 +279,12 @@ function Get-ChoiceScript {
     }
 }
 
-# ===========================================================================
-#  CORE: Invoke-ChoiceExecution
-#  Full pipeline: check cache -> download if needed -> execute the script.
-#
-#  Returns: PSCustomObject with Component, Priority, Status, Details
-# ===========================================================================
+
+
+
+
+
+
 function Invoke-ChoiceExecution {
     param(
         [Parameter(Mandatory)]
@@ -338,7 +302,7 @@ function Invoke-ChoiceExecution {
         Details   = ""
     }
 
-    # Step 1: Ensure script is available (cache or download)
+    
     $scriptPath = Get-ChoiceScript -FileName $fileName -DisplayName $displayName
     if (-not $scriptPath) {
         $result.Status = "FAILED"
@@ -346,7 +310,7 @@ function Invoke-ChoiceExecution {
         return $result
     }
 
-    # Step 2: Execute the choice script
+    
     try {
         Show-Status -Message "Executing: $fileName ..." -Type "INFO"
         & $scriptPath | Out-Host
@@ -364,15 +328,13 @@ function Invoke-ChoiceExecution {
     return $result
 }
 
-# ===========================================================================
-#                          MAIN EXECUTION
-# ===========================================================================
 
-# -- Banner --
+
+
 Show-Banner
 
-# -- Step 0: Clean and create directory structure --
-# Always start fresh: remove old workspace and recreate
+
+
 Show-Status -Message "Cleaning workspace: $Script:InstallerDir" -Type "INFO"
 
 if (Test-Path $Script:InstallerDir) {
@@ -387,7 +349,7 @@ Show-Status -Message "  choice   -> $Script:ChoiceDir" -Type "HINT"
 Show-Status -Message "  component -> $Script:ComponentDir" -Type "HINT"
 Write-Host ""
 
-# -- Step 1: Fetch available choices from API --
+
 $apiReady = Fetch-AvailableChoices
 if (-not $apiReady -or $Script:AvailableChoices.Count -eq 0) {
     Show-Status -Message "No choices available from API. Exiting." -Type "ERROR"
@@ -397,12 +359,12 @@ if (-not $apiReady -or $Script:AvailableChoices.Count -eq 0) {
 Write-Host ""
 Start-Sleep -Milliseconds 500
 
-# -- Step 2: Interactive Menu --
+
 $selectedChoices = Invoke-InteractiveMenu `
     -Title "Select choice(s) to install:" `
     -ChoicesList $Script:AvailableChoices
 
-# Validate selection
+
 if (-not $selectedChoices -or @($selectedChoices).Count -eq 0) {
     Clear-Host
     Show-Banner
@@ -411,11 +373,11 @@ if (-not $selectedChoices -or @($selectedChoices).Count -eq 0) {
     exit
 }
 
-# Ensure it's always an array (single selection returns a scalar)
+
 $selectedChoices = @($selectedChoices)
 
-# -- Step 3: Sort by Priority & Confirm --
-# Per instraction.md: execute sequence by priority (lower number = higher priority = runs first)
+
+
 $sortedTasks = $selectedChoices | Sort-Object -Property { [double]$_.priority }
 
 Clear-Host
@@ -437,7 +399,7 @@ Show-Status -Message "Starting installation of $($sortedTasks.Count) choice(s)..
 Write-Host ""
 Start-Sleep -Seconds 1
 
-# -- Step 4: Download (if needed), then Execute sequentially --
+
 $results = @()
 $sortedTasks = @($sortedTasks)
 $totalSteps = if ($sortedTasks.Count -gt 0) { $sortedTasks.Count } else { 1 }
@@ -447,7 +409,7 @@ foreach ($task in $sortedTasks) {
     $currentStep++
     $percentComplete = [math]::Round(($currentStep / $totalSteps) * 100)
 
-    # Overall progress bar
+    
     Write-Progress `
         -Activity "IT Support Installer" `
         -Status "[$currentStep / $totalSteps] Processing: $($task.name)" `
@@ -462,10 +424,10 @@ foreach ($task in $sortedTasks) {
     $results += $installResult
 }
 
-# Close progress bar
+
 Write-Progress -Activity "IT Support Installer" -Completed
 
-# -- Step 5: Summary Report --
+
 Write-Host ""
 Write-Host ""
 Write-Host ("  " + ("=" * 64)) -ForegroundColor DarkGray

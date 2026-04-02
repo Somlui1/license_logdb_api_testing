@@ -7,14 +7,8 @@ from fastapi.staticfiles import StaticFiles
 from fastmcp import FastMCP
 from app.mcp_tools.router_core import MCPRouter
 # Import different tool categories
-from app.mcp_tools.db_tools import router as db_router
-from app.mcp_tools.email_tools import router as email_router
 from app.mcp_tools.intranet import router as intranet_router
 from app.mcp_tools.glpi_server import router as glpi_router
-from app.mcp_tools.ad_server import router as ad_router
-
-# The single Main MCP Server
-mcp_server = FastMCP("Main MCP Server")
 
 # API Router for exposing MCP testing via Swagger UI
 mcp_docs_router = APIRouter(prefix="/mcp", tags=["MCP Management"])
@@ -23,11 +17,14 @@ mcp_docs_router = APIRouter(prefix="/mcp", tags=["MCP Management"])
 tool_registry: Dict[str, Callable] = {}
 tool_metadata = []
 
-def register_mcp_tools(router: MCPRouter):
-    """Registers tools from a given MCPRouter into the MAIN FastMCP server."""
+def register_isolated_mcp_server(app: FastAPI, router: MCPRouter, mount_path: str):
+    """Creates a standalone FastMCP server for the given router and mounts it to FastAPI."""
+    server_name = f"{router.name} MCP Server"
+    server_instance = FastMCP(server_name)
+    
     for tool_func in router.tools:
-        # 1. Register tool to the unified FastMCP server
-        mcp_server.tool()(tool_func)
+        # 1. Register tool to this specific FastMCP isolated server
+        server_instance.tool()(tool_func)
         
         # 2. Store in our internal registry for the dynamic execution endpoint
         tool_registry[tool_func.__name__] = tool_func
@@ -35,16 +32,22 @@ def register_mcp_tools(router: MCPRouter):
         tool_metadata.append({
             "category": router.name,
             "name": tool_func.__name__,
-            "description": tool_func.__doc__
+            "description": tool_func.__doc__,
+            "sse_endpoint": f"{mount_path}/sse"
         })
+        
+    # Generate the SSE HTTP app
+    sse_app = server_instance.http_app(transport="sse")
+    # Mount into main FastAPI app endpoint
+    app.mount(mount_path, sse_app)
+
+
 
 @mcp_docs_router.get("/tools", summary="List all MCP tools across all categories")
 def get_all_mcp_tools():
-    """Returns a list of all active tools collected in the Main MCP Server."""
+    """Returns a list of all active tools across all isolated MCP servers."""
     return {
-        "server": "Main MCP Server",
-        "sse_endpoint": "/mcp/sse",
-        "messages_endpoint": "/mcp/messages",
+        "architecture": "Multi-Server",
         "tools": tool_metadata
     }
 
@@ -80,6 +83,7 @@ async def execute_tool_dynamically(tool_name: str, request: Request):
         raise HTTPException(status_code=400, detail=f"Argument format error (Did you send the right JSON body?): {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Tool execution failed: {e}")
+
 
 @mcp_docs_router.get("/what-is-mcp", summary="📖 What is MCP? (For IT Team)")
 def explain_mcp_protocol():
@@ -144,36 +148,26 @@ def download_claude_config():
     }
     return JSONResponse(content=config, headers={"Content-Disposition": 'attachment; filename="claude_desktop_config.json"'})
 
-@mcp_docs_router.get("/download/run-script", summary="⬇️ Download run_mcp_stdio.py")
-def download_run_script():
-    """ดาวน์โหลดตัวสคริปต์กลาง"""
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    script_path = os.path.join(root_dir, "run_mcp_stdio.py")
-    if os.path.exists(script_path):
-        return FileResponse(script_path, filename="run_mcp_stdio.py")
-    raise HTTPException(status_code=404, detail="File not found")
-
+    
 def init_mcp_servers(app: FastAPI):
-    """Main initialization hook to plug the single MCP server into FastAPI."""
+    """Main initialization hook to plug isolated MCP servers into FastAPI."""
     # Mount static files to serve the MCP Infographic for Swagger UI
     component_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "component")
-    app.mount("/mcp-static", StaticFiles(directory=component_dir), name="mcp_static")
+    if os.path.exists(component_dir):
+        app.mount("/mcp-static", StaticFiles(directory=component_dir), name="mcp_static")
 
-    # Combine all individual routers into the ONE central Main MCP Server
-    #register_mcp_tools(db_router)
-    #register_mcp_tools(email_router)
-    #register_mcp_tools(intranet_router)
-    #register_mcp_tools(ad_router)
+    # Map each module to its isolated URL path
+    # Endpoint SSE will become example: http://127.0.0.1:8000/mcp/glpi/sse
+    mcp_modules = [
+        # {"router": db_router, "path": "/mcp/db"},
+        # {"router": email_router, "path": "/mcp/email"},
+        # {"router": intranet_router, "path": "/mcp/intranet"},
+        # {"router": ad_router, "path": "/mcp/ad"},
+        {"router": glpi_router, "path": "/mcp/glpi"},
+    ]
 
-    register_mcp_tools(glpi_router)
-    
-    # Generate the SSE HTTP app from FastMCP
-    # Using 'sse' transport sets it up for standard SSE connections used by `mcp-proxy`
-    sse_app = mcp_server.http_app(transport="sse")
-    
-    # Mount the unified Server at /mcp 
-    # SSE Endpoint URL will be: http://127.0.0.1:8000/mcp/sse
-    app.mount("/mcp", sse_app)
+    for module in mcp_modules:
+        register_isolated_mcp_server(app, module["router"], module["path"])
     
     # Finally, include the documentation router so Swagger sees the endpoints
     app.include_router(mcp_docs_router)
