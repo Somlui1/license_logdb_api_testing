@@ -17,3 +17,5 @@ jinja2
 mcp
 fastapi-mcp
 mysql
+random
+fastmcp
