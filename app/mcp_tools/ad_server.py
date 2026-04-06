@@ -197,6 +197,16 @@ _GROUP_LDAP = {
     "info":              "notes",
 }
 
+_OU_LDAP = {
+    "ou":                "name",
+    "description":       "description",
+    "distinguishedName": "distinguished_name",
+    "whenCreated":       "creation_date",
+    "whenChanged":       "modification_date",
+    "objectGUID":        "guid",
+    "gPLink":            "_gplink_raw",   # computed → linked_gpos
+}
+
 # ── Reverse Mappings (Friendly → LDAP) ──────────────────────────────────────────
 # สำหรับใช้สร้าง LDAP Filter จาก where clause (Push-down)
 _USER_LDAP_REV     = {v: k for k, v in _USER_LDAP.items()}
@@ -215,16 +225,6 @@ _ALIAS_MAP = {
     "title":          "job_title",
     "company":        "company",
     "department":     "department"
-}
-
-_OU_LDAP = {
-    "ou":                "name",
-    "description":       "description",
-    "distinguishedName": "distinguished_name",
-    "whenCreated":       "creation_date",
-    "whenChanged":       "modification_date",
-    "objectGUID":        "guid",
-    "gPLink":            "_gplink_raw",   # computed → linked_gpos
 }
 
 # Presets (ชื่อ friendly → list of friendly keys)
