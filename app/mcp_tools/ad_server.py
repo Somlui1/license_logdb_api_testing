@@ -197,6 +197,26 @@ _GROUP_LDAP = {
     "info":              "notes",
 }
 
+# ── Reverse Mappings (Friendly → LDAP) ──────────────────────────────────────────
+# สำหรับใช้สร้าง LDAP Filter จาก where clause (Push-down)
+_USER_LDAP_REV     = {v: k for k, v in _USER_LDAP.items()}
+_COMPUTER_LDAP_REV = {v: k for k, v in _COMPUTER_LDAP.items()}
+_CONTACT_LDAP_REV  = {v: k for k, v in _CONTACT_LDAP.items()}
+_GROUP_LDAP_REV    = {v: k for k, v in _GROUP_LDAP.items()}
+_OU_LDAP_REV       = {v: k for k, v in _OU_LDAP.items()}
+
+# เพิ่ม Alias ทั่วไปที่ AI มักส่งมา (LDAP names → Friendly names)
+_ALIAS_MAP = {
+    "sAMAccountName": "username",
+    "displayName":    "display_name",
+    "givenName":      "first_name",
+    "sn":             "last_name",
+    "mail":           "email",
+    "title":          "job_title",
+    "company":        "company",
+    "department":     "department"
+}
+
 _OU_LDAP = {
     "ou":                "name",
     "description":       "description",
@@ -439,10 +459,16 @@ def _fetch_count(search_base: str, ldap_filter: str, limit: int = 100000) -> int
     return count
 
 
-def _build_users(search_base: str, member_of_dn: str | None = None, attrs: list[str] | None = None) -> list[dict]:
+def _build_users(search_base: str, member_of_dn: str | None = None, attrs: list[str] | None = None, where_f: dict | None = None) -> list[dict]:
     ldap_filter = "(&(objectClass=user)(objectCategory=person))"
     if member_of_dn:
         ldap_filter = f"(&(objectClass=user)(objectCategory=person)(memberOf:1.2.840.113556.1.4.1941:={member_of_dn}))"
+    
+    # Push-down basic filters to LDAP
+    if where_f:
+        pushed = _build_pushed_ldap_filter(where_f, _USER_LDAP_REV)
+        if pushed:
+            ldap_filter = f"(&{ldap_filter}{pushed})"
     
     fetch_attrs = attrs if attrs else list(_USER_LDAP.keys())
     raw_list = _fetch(
@@ -517,10 +543,15 @@ def _build_users(search_base: str, member_of_dn: str | None = None, attrs: list[
     return rows
 
 
-def _build_computers(search_base: str, member_of_dn: str | None = None, attrs: list[str] | None = None) -> list[dict]:
+def _build_computers(search_base: str, member_of_dn: str | None = None, attrs: list[str] | None = None, where_f: dict | None = None) -> list[dict]:
     ldap_filter = "(objectClass=computer)"
     if member_of_dn:
         ldap_filter = f"(&(objectClass=computer)(memberOf:1.2.840.113556.1.4.1941:={member_of_dn}))"
+    
+    if where_f:
+        pushed = _build_pushed_ldap_filter(where_f, _COMPUTER_LDAP_REV)
+        if pushed:
+            ldap_filter = f"(&{ldap_filter}{pushed})"
         
     fetch_attrs = attrs if attrs else list(_COMPUTER_LDAP.keys())
     raw_list = _fetch(
@@ -560,11 +591,17 @@ def _build_computers(search_base: str, member_of_dn: str | None = None, attrs: l
     return rows
 
 
-def _build_contacts(search_base: str, attrs: list[str] | None = None) -> list[dict]:
+def _build_contacts(search_base: str, attrs: list[str] | None = None, where_f: dict | None = None) -> list[dict]:
+    ldap_filter = "(objectClass=contact)"
+    if where_f:
+        pushed = _build_pushed_ldap_filter(where_f, _CONTACT_LDAP_REV)
+        if pushed:
+            ldap_filter = f"(&{ldap_filter}{pushed})"
+
     fetch_attrs = attrs if attrs else list(_CONTACT_LDAP.keys())
     raw_list = _fetch(
         search_base,
-        "(objectClass=contact)",
+        ldap_filter,
         fetch_attrs,
     )
     if attrs: return raw_list
@@ -598,10 +635,15 @@ def _build_contacts(search_base: str, attrs: list[str] | None = None) -> list[di
     return rows
 
 
-def _build_groups(search_base: str, member_of_dn: str | None = None, attrs: list[str] | None = None) -> list[dict]:
+def _build_groups(search_base: str, member_of_dn: str | None = None, attrs: list[str] | None = None, where_f: dict | None = None) -> list[dict]:
     ldap_filter = "(objectClass=group)"
     if member_of_dn:
         ldap_filter = f"(&(objectClass=group)(memberOf:1.2.840.113556.1.4.1941:={member_of_dn}))"
+
+    if where_f:
+        pushed = _build_pushed_ldap_filter(where_f, _GROUP_LDAP_REV)
+        if pushed:
+            ldap_filter = f"(&{ldap_filter}{pushed})"
 
     fetch_attrs = attrs if attrs else list(_GROUP_LDAP.keys())
     raw_list = _fetch(
@@ -632,11 +674,17 @@ def _build_groups(search_base: str, member_of_dn: str | None = None, attrs: list
     return rows
 
 
-def _build_ous(search_base: str, attrs: list[str] | None = None) -> list[dict]:
+def _build_ous(search_base: str, attrs: list[str] | None = None, where_f: dict | None = None) -> list[dict]:
+    ldap_filter = "(objectClass=organizationalUnit)"
+    if where_f:
+        pushed = _build_pushed_ldap_filter(where_f, _OU_LDAP_REV)
+        if pushed:
+            ldap_filter = f"(&{ldap_filter}{pushed})"
+
     fetch_attrs = attrs if attrs else list(_OU_LDAP.keys())
     raw_list = _fetch(
         search_base,
-        "(objectClass=organizationalUnit)",
+        ldap_filter,
         fetch_attrs,
     )
     if attrs: return raw_list
@@ -787,6 +835,13 @@ def _parse_where(where_str: str) -> dict:
         if "=" in p:
             k, v = p.split("=", 1)
             k, v = k.strip(), v.strip()
+            
+            # แปลง LDAP key เป็น Friendly key (ดักทาง AI)
+            # เช่น sAMAccountName=xxx -> username=xxx
+            base_k = k.replace("_contains", "").replace("_startswith", "").replace("_endswith", "").replace("_regex", "").replace("_not", "")
+            if base_k in _ALIAS_MAP:
+                k = k.replace(base_k, _ALIAS_MAP[base_k])
+
             # ตัด quotes ถ้ามี
             if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
                 v = v[1:-1]
@@ -797,6 +852,50 @@ def _parse_where(where_str: str) -> dict:
             elif v.isdigit(): f[k] = int(v)
             else: f[k] = v
     return f
+
+
+def _build_pushed_ldap_filter(f: dict, rev_map: dict) -> str:
+    """แปลง filter พื้นฐานใน dict เป็น LDAP filter string เพื่อ push-down ไปที่ server."""
+    if not f:
+        return ""
+    
+    clauses = []
+    for k, v in f.items():
+        base_k = k
+        op = "="
+        suffix = ""
+        
+        # คัดกรองเฉพาะ operators ที่ LDAP รองรับโดยตรง
+        if k.endswith("_contains"):
+            base_k = k[:-9]
+            op = "="
+            v = f"*{v}*"
+        elif k.endswith("_startswith"):
+            base_k = k[:-11]
+            op = "="
+            v = f"{v}*"
+        elif k.endswith("_endswith"):
+            base_k = k[:-9]
+            op = "="
+            v = f"*{v}"
+
+        ldap_attr = rev_map.get(base_k)
+        if not ldap_attr:
+            continue
+            
+        # จัดการค่าที่เป็น boolean/int
+        if isinstance(v, bool):
+            continue # boolean มักติด UAC bitwise คัดกรองใน Python ชัวร์กว่า
+        
+        # กันอักขระพิเศษใน LDAP filter (เบื้องต้น)
+        sv = str(v).replace("(", r"\28").replace(")", r"\29").replace("*", r"\2a") if "*" not in str(v) else str(v)
+        clauses.append(f"({ldap_attr}{op}{sv})")
+    
+    if not clauses:
+        return ""
+    if len(clauses) == 1:
+        return clauses[0]
+    return "(&" + "".join(clauses) + ")"
 
 
 def _resolve_cols(fields_str: str, presets: dict) -> tuple[list[str] | None, str | None]:
@@ -892,15 +991,15 @@ def count_objects(
         # Path for filtered counts
         target_attrs = None # Fetch full attributes to apply Python filtering
         if object_type == "user":
-            rows = _build_users(base, attrs=target_attrs)
+            rows = _build_users(base, attrs=target_attrs, where_f=f)
         elif object_type == "computer":
-            rows = _build_computers(base, attrs=target_attrs)
+            rows = _build_computers(base, attrs=target_attrs, where_f=f)
         elif object_type == "contact":
-            rows = _build_contacts(base, attrs=target_attrs)
+            rows = _build_contacts(base, attrs=target_attrs, where_f=f)
         elif object_type == "group":
-            rows = _build_groups(base, attrs=target_attrs)
+            rows = _build_groups(base, attrs=target_attrs, where_f=f)
         elif object_type == "ou":
-            rows = _build_ous(base, attrs=target_attrs)
+            rows = _build_ous(base, attrs=target_attrs, where_f=f)
         else:
             return f"Unknown object_type: '{object_type}'"
 
@@ -914,7 +1013,7 @@ def count_objects(
 def get_users(
     columns: str  = "identity",
     where:   str  = "",
-    ou_key:  str  = "all_users",
+    ou_key:  str  = "all",
     limit:   int  = 200,
     member_of_dn: str | None = None,
     thorough_logon: bool = False,
@@ -923,9 +1022,11 @@ def get_users(
     
     Args:
         columns: Preset (min | identity | contact_info | address | account | exchange | groups | full) 
-                 หรือ comma-separated fields
-        where:   เงื่อนไขกรอง e.g. "department=IT, disabled=false"
-        ou_key:  รหัส OU — ดูจาก list_ou_structure()
+                 หรือระบุชื่อ field เช่น "username,email"
+        where:   เงื่อนไขกรองข้อมูล *แนะนำใช้ Friendly Key* (Key: username, display_name, first_name, last_name, email, department, company)
+                 - ตัวอย่าง 1: "username=wajeepradit.p"
+                 - ตัวอย่าง 2: "username_contains=wajeepradit, department=IT"
+        ou_key:  รหัส OU เพื่อจำกัดขอบเขตการค้นหา (default "all" แนะนำ เพื่อค้นหาทั่วทั้งบริษัท)
         limit:   1-2000 (default 200)
     """
     base, err = _resolve_ou(ou_key)
@@ -935,7 +1036,8 @@ def get_users(
     if ferr:
         return ferr
     try:
-        rows = _build_users(base, member_of_dn=member_of_dn)
+        f = _parse_where(where)
+        rows = _build_users(base, member_of_dn=member_of_dn, where_f=f)
         
         if thorough_logon:
             for r in rows:
@@ -944,7 +1046,6 @@ def get_users(
                     r["last_logon"] = latest
                     r["_last_logon_days"] = _days_ago(latest)
 
-        f = _parse_where(where)
         if f:
             rows = _apply_filter(rows, f)
         rows  = rows[:max(1, min(limit, 2000))]
@@ -957,7 +1058,7 @@ def get_users(
 def get_computers(
     columns: str  = "identity",
     where:   str  = "",
-    ou_key:  str  = "all_computers",
+    ou_key:  str  = "all",
     limit:   int  = 200,
     member_of_dn: str | None = None,
     thorough_logon: bool = False,
@@ -965,9 +1066,9 @@ def get_computers(
     """ดึงข้อมูล Computer จาก Active Directory (Read-Only)
     
     Args:
-        columns: Preset (min | identity | status | groups | full) หรือ comma-separated fields
-        where:   เงื่อนไขกรอง e.g. "operating_system_contains=Windows 11"
-        ou_key:  รหัส OU — "workstations" | "servers" | "all_computers"
+        columns: Preset (min | identity | status | groups | full) หรือระบุชื่อ field เช่น "name,dns_hostname"
+        where:   เงื่อนไขกรอง e.g. "operating_system_contains=Windows 11" (ใช้ Friendly Key เท่านั้น)
+        ou_key:  รหัส OU — default "all" เพื่อค้นหาทั่วทั้งบริษัท
         limit:   1-2000
     """
     base, err = _resolve_ou(ou_key)
@@ -977,7 +1078,8 @@ def get_computers(
     if ferr:
         return ferr
     try:
-        rows = _build_computers(base, member_of_dn=member_of_dn)
+        f = _parse_where(where)
+        rows = _build_computers(base, member_of_dn=member_of_dn, where_f=f)
 
         if thorough_logon:
             for r in rows:
@@ -986,7 +1088,6 @@ def get_computers(
                     r["last_logon"] = latest
                     r["_last_logon_days"] = _days_ago(latest)
 
-        f = _parse_where(where)
         if f:
             rows = _apply_filter(rows, f)
         rows = rows[:max(1, min(limit, 2000))]
@@ -1061,15 +1162,15 @@ def get_domain_summary() -> str:
 def get_contacts(
     columns: str  = "full",
     where:   str  = "",
-    ou_key:  str  = "contacts",
+    ou_key:  str  = "all",
     limit:   int  = 200,
 ) -> str:
     """ดึงข้อมูล Contact (External) จาก Active Directory (Read-Only)
     
     Args:
-        columns: Preset (min | full) หรือ comma-separated fields
-        where:   เงื่อนไขกรอง e.g. "email_endswith=@vendor.com"
-        ou_key:  รหัส OU — "contacts"
+        columns: Preset (min | full) หรือระบุชื่อ field เช่น "name,email"
+        where:   เงื่อนไขกรอง e.g. "email_endswith=@vendor.com" (ใช้ Friendly Key)
+        ou_key:  รหัส OU — default "all" เพื่อค้นหาทั่วทั้งบริษัท
         limit:   1-2000
     """
     base, err = _resolve_ou(ou_key)
@@ -1079,8 +1180,8 @@ def get_contacts(
     if ferr:
         return ferr
     try:
-        rows = _build_contacts(base)
         f = _parse_where(where)
+        rows = _build_contacts(base, where_f=f)
         if f:
             rows = _apply_filter(rows, f)
         rows = rows[:max(1, min(limit, 2000))]
@@ -1093,15 +1194,15 @@ def get_contacts(
 def get_groups(
     columns: str  = "min",
     where:   str  = "",
-    ou_key:  str  = "groups",
+    ou_key:  str  = "all",
     limit:   int  = 200,
 ) -> str:
     """ดึงข้อมูล Group จาก Active Directory (Read-Only)
     
     Args:
-        columns: Preset (min | members | full) หรือ comma-separated fields
-        where:   เงื่อนไขกรอง e.g. "name_contains=VPN, group_type=Security"
-        ou_key:  รหัส OU — ดูจาก list_ou_structure()
+        columns: Preset (min | members | full) หรือระบุชื่อ field เช่น "name,description"
+        where:   เงื่อนไขกรอง e.g. "name_contains=VPN, group_type=Security" (ใช้ Friendly Key)
+        ou_key:  รหัส OU — default "all" เพื่อค้นหาทั่วทั้งบริษัท
         limit:   1-2000
     """
     base, err = _resolve_ou(ou_key)
@@ -1111,8 +1212,8 @@ def get_groups(
     if ferr:
         return ferr
     try:
-        rows = _build_groups(base)
         f = _parse_where(where)
+        rows = _build_groups(base, where_f=f)
         if f:
             rows = _apply_filter(rows, f)
         rows = rows[:max(1, min(limit, 2000))]
@@ -1131,9 +1232,9 @@ def get_ous(
     """ดึงข้อมูล OU / Container จาก Active Directory (Read-Only)
     
     Args:
-        columns: Preset (min | full) หรือ comma-separated fields
-        where:   เงื่อนไขกรอง e.g. "name_contains=Bangkok"
-        ou_key:  รหัส OU ที่เป็น parent
+        columns: Preset (min | full) หรือระบุชื่อ field เช่น "name,distinguished_name"
+        where:   เงื่อนไขกรอง e.g. "name_contains=Bangkok" (ใช้ Friendly Key)
+        ou_key:  รหัส OU ที่เป็น parent (default "all")
         limit:   1-2000
     """
     base, err = _resolve_ou(ou_key)
@@ -1143,8 +1244,8 @@ def get_ous(
     if ferr:
         return ferr
     try:
-        rows = _build_ous(base)
         f = _parse_where(where)
+        rows = _build_ous(base, where_f=f)
         if f:
             rows = _apply_filter(rows, f)
         rows = rows[:max(1, min(limit, 2000))]
