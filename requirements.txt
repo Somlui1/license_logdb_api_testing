@@ -14,3 +14,4 @@ fastapi-mcp
 fastmcp
 mysql-connector-python
 ldap3
+pycryptodome
