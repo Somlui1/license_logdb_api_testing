@@ -9,6 +9,7 @@ from app.mcp_tools.router_core import MCPRouter
 # Import different tool categories
 from app.mcp_tools.intranet import router as intranet_router
 from app.mcp_tools.glpi_server import router as glpi_router
+from app.mcp_tools.ad_server import router as ad_server
 
 # API Router for exposing MCP testing via Swagger UI
 mcp_docs_router = APIRouter(prefix="/mcp", tags=["MCP Management"])
@@ -156,18 +157,35 @@ def init_mcp_servers(app: FastAPI):
     if os.path.exists(component_dir):
         app.mount("/mcp-static", StaticFiles(directory=component_dir), name="mcp_static")
 
+    # Initialize a Master server to aggregate all tools for the Bridge/Agent
+    master_mcp = FastMCP("Apico Master MCP")
+
     # Map each module to its isolated URL path
     # Endpoint SSE will become example: http://127.0.0.1:8000/mcp/glpi/sse
     mcp_modules = [
         # {"router": db_router, "path": "/mcp/db"},
         # {"router": email_router, "path": "/mcp/email"},
-        # {"router": intranet_router, "path": "/mcp/intranet"},
-        # {"router": ad_router, "path": "/mcp/ad"},
+        {"router": intranet_router, "path": "/mcp/intranet"},
+        {"router": ad_server, "path": "/mcp/ad"},
         {"router": glpi_router, "path": "/mcp/glpi"},
     ]
 
     for module in mcp_modules:
+        # 1. Register to isolated paths (Endpoint: /mcp/ad/sse, etc.)
         register_isolated_mcp_server(app, module["router"], module["path"])
+        
+        # 2. Aggregate all tools into the Master MCP for unified Bridge access
+        # We use a prefix (e.g., AD_server_get_users) to avoid name collisions
+        # because multiple modules might have tools like 'get_computers'.
+        for tool_func in module["router"].tools:
+            try:
+                unique_name = f"{module['router'].name}_{tool_func.__name__}"
+                master_mcp.tool(name=unique_name)(tool_func)
+            except Exception as e:
+                print(f"Error registering {tool_func.__name__} to Master MCP: {e}", file=sys.stderr)
+    
+    # Mount Master at /mcp (This makes /mcp/sse contain ALL tools)
+    app.mount("/mcp", master_mcp.http_app(transport="sse"))
     
     # Finally, include the documentation router so Swagger sees the endpoints
     app.include_router(mcp_docs_router)
