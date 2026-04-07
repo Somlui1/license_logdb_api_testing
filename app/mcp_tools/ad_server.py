@@ -30,6 +30,9 @@ from ldap3.core.exceptions import LDAPException
 from dotenv import load_dotenv
 
 from .router_core import MCPRouter   # ← ปรับ import ตาม project structure จริง
+import time
+import concurrent.futures
+from functools import lru_cache
 
 load_dotenv()
 
@@ -74,6 +77,11 @@ _OU_MAP = {
     "domain_controllers":f"OU=Domain Controllers,{_AD_BASE_DN}",
     "user_delete":       f"OU=User Delete,{_AD_BASE_DN}",
 }
+
+# ── Cache ──────────────────────────────────────────────────────────────────────
+_fetch_cache: dict[str, tuple[float, list[dict]]] = {}
+_CACHE_TTL = 300  # 5 minutes
+
 # ── Cache และ Helper สำหรับ Domain Policy ───────────────────────────────────
 _DOMAIN_MAX_PWD_AGE_DAYS = None
 
@@ -277,6 +285,17 @@ _OU_PRESETS = {
 def _json(data: Any) -> str:
     return json.dumps(data, default=str, ensure_ascii=False)
 
+def _wrap(rows: list, limit: int, total_before_limit: int, offset: int = 0) -> str:
+    """คืนผลลัพธ์แบบมี metadata ครอบ"""
+    return _json({
+        "count": len(rows),
+        "total_matched": total_before_limit,
+        "offset": offset,
+        "limit": limit,
+        "truncated": total_before_limit > (offset + len(rows)),
+        "data": rows,
+    })
+
 def _resolve_ou(ou_key: str) -> tuple[str, str | None]:
     key = ou_key.strip().lower()
     if key in _OU_MAP:
@@ -389,30 +408,51 @@ def _connect(host: str | None = None) -> Connection:
         # ถ้าเชื่อมต่อไม่ได้เลยหลังจากลองทุกตัวใน Pool
         raise Exception(f"LDAP Connection Failed after trying all hosts/ports: {str(e)}")
 
-def _get_latest_last_logon(dn: str) -> datetime | None:
-    """Query lastLogon from all DCs and return the most recent one (Real-time accuracy)."""
-    if len(_AD_HOSTS) <= 1:
-        return None
-    
-    latest_ft = 0
-    for host in _AD_HOSTS:
-        try:
-            conn = _connect(host)
-            conn.search(dn, "(objectClass=*)", attributes=["lastLogon"])
-            if conn.entries:
-                ft = int(conn.entries[0].lastLogon.value or 0)
-                if ft > latest_ft:
-                    latest_ft = ft
+def _query_single_dc(host: str, dn: str) -> int:
+    """Helper for parallel DC query."""
+    try:
+        conn = _connect(host)
+        conn.search(dn, "(objectClass=*)", attributes=["lastLogon"])
+        if conn.entries:
+            val = conn.entries[0].lastLogon.value
             conn.unbind()
-        except Exception:
-            continue
-            
+            return int(val or 0)
+        conn.unbind()
+    except Exception:
+        pass
+    return 0
+
+def _get_latest_last_logon(dn: str) -> datetime | None:
+    """Query lastLogon from all DCs in parallel and return the most recent one."""
+    if not _AD_HOSTS:
+        return None
+    if len(_AD_HOSTS) == 1:
+        # ถ้ามี DC เดียว ไม่ต้องใช้ thread pool
+        ft = _query_single_dc(_AD_HOSTS[0], dn)
+        return _filetime_to_dt(ft) if ft > 0 else None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(_AD_HOSTS)) as executor:
+        futures = {executor.submit(_query_single_dc, host, dn): host for host in _AD_HOSTS}
+        results = []
+        for future in concurrent.futures.as_completed(futures):
+            results.append(future.result())
+    
+    latest_ft = max(results) if results else 0
     return _filetime_to_dt(latest_ft) if latest_ft > 0 else None
 
 # ── Coarse fetchers ────────────────────────────────────────────────────────────
 
-def _fetch(search_base: str, ldap_filter: str, attrs: list[str], limit: int = 2000) -> list[dict]:
-    """Fetch objects using Paged Search."""
+def _fetch(search_base: str, ldap_filter: str, attrs: list[str], limit: int = 5000, use_cache: bool = True) -> list[dict]:
+    """Fetch objects using Paged Search with TTL Cache."""
+    cache_key = f"{search_base}|{ldap_filter}|{','.join(sorted(attrs))}"
+    
+    if use_cache:
+        cached = _fetch_cache.get(cache_key)
+        if cached:
+            ts, data = cached
+            if time.time() - ts < _CACHE_TTL:
+                return data
+
     conn = _connect()
     results = []
     
@@ -433,6 +473,10 @@ def _fetch(search_base: str, ldap_filter: str, attrs: list[str], limit: int = 20
                 break
     finally:
         conn.unbind()
+    
+    if use_cache:
+        _fetch_cache[cache_key] = (time.time(), results)
+        
     return results
 
 def _fetch_count(search_base: str, ldap_filter: str, limit: int = 100000) -> int:
@@ -798,8 +842,26 @@ def _apply_filter(rows: list[dict], f: dict) -> list[dict]:
 
             # ── exact match (default) ──────────────────────────────────
             else:
-                if _str(row.get(key)) != _str(val):
-                    return False
+                row_val = row.get(key)
+                
+                # Support OR (e.g. "IT|HR")
+                if isinstance(val, str) and "|" in val:
+                    options = [o.strip().lower() for o in val.split("|")]
+                    if _str(row_val) not in options:
+                        return False
+                # Support Range (e.g. "30..90")
+                elif isinstance(val, str) and ".." in val:
+                    try:
+                        start, end = val.split("..")
+                        rv = int(row_val or 0)
+                        if not (int(start) <= rv <= int(end)):
+                            return False
+                    except (ValueError, TypeError):
+                        return False
+                # Standard exact match
+                else:
+                    if _str(row_val) != _str(val):
+                        return False
 
         return True
 
@@ -832,12 +894,17 @@ def _parse_where(where_str: str) -> dict:
     parts = [p.strip() for p in s.split(",") if p.strip()]
     f = {}
     for p in parts:
-        if "=" in p:
+        k, v = "", ""
+        if "!=" in p:
+            k, v = p.split("!=", 1)
+            k = k.strip() + "_not"
+            v = v.strip()
+        elif "=" in p:
             k, v = p.split("=", 1)
             k, v = k.strip(), v.strip()
-            
+        
+        if k:
             # แปลง LDAP key เป็น Friendly key (ดักทาง AI)
-            # เช่น sAMAccountName=xxx -> username=xxx
             base_k = k.replace("_contains", "").replace("_startswith", "").replace("_endswith", "").replace("_regex", "").replace("_not", "")
             if base_k in _ALIAS_MAP:
                 k = k.replace(base_k, _ALIAS_MAP[base_k])
@@ -845,12 +912,15 @@ def _parse_where(where_str: str) -> dict:
             # ตัด quotes ถ้ามี
             if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
                 v = v[1:-1]
-            # แปลง boolean/int
+            
+            # แปลง boolean/int (ยกเว้นที่มี | หรือ ..)
             lv = v.lower()
             if lv == "true": f[k] = True
             elif lv == "false": f[k] = False
-            elif v.isdigit(): f[k] = int(v)
-            else: f[k] = v
+            elif v.isdigit() and "|" not in v and ".." not in v: 
+                f[k] = int(v)
+            else:
+                f[k] = v
     return f
 
 
