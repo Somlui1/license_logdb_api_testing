@@ -503,7 +503,7 @@ def _fetch_count(search_base: str, ldap_filter: str, limit: int = 100000) -> int
     return count
 
 
-def _build_users(search_base: str, member_of_dn: str | None = None, attrs: list[str] | None = None, where_f: dict | None = None) -> list[dict]:
+def _build_users(search_base: str, member_of_dn: str | None = None, attrs: list[str] | None = None, where_f: dict | None = None, extra_ldap_filter: str | None = None) -> list[dict]:
     ldap_filter = "(&(objectClass=user)(objectCategory=person))"
     if member_of_dn:
         ldap_filter = f"(&(objectClass=user)(objectCategory=person)(memberOf:1.2.840.113556.1.4.1941:={member_of_dn}))"
@@ -513,6 +513,9 @@ def _build_users(search_base: str, member_of_dn: str | None = None, attrs: list[
         pushed = _build_pushed_ldap_filter(where_f, _USER_LDAP_REV)
         if pushed:
             ldap_filter = f"(&{ldap_filter}{pushed})"
+    
+    if extra_ldap_filter:
+        ldap_filter = f"(&{ldap_filter}{extra_ldap_filter})"
     
     fetch_attrs = attrs if attrs else list(_USER_LDAP.keys())
     raw_list = _fetch(
@@ -1080,46 +1083,113 @@ def count_objects(
 
 
 @router.tool()
+def search_users(
+    q:     str,
+    columns: str = "identity",
+    ou_key:  str = "all",
+    limit:   int = 100,
+    offset:  int = 0,
+) -> str:
+    """ค้นหา User แบบ Full-text ข้ามหลาย Field (username, display_name, email, department, phone, mobile).
+    
+    ใช้เมื่อไม่แน่ใจว่าข้อมูลที่ต้องการอยู่ใน Field ไหน หรือต้องการค้นหาแบบ Google-style.
+    
+    Args:
+        q:       คำค้นหา (e.g. "wajeepradit", "IT", "081-xxx")
+        columns: Preset หรือ list of fields
+        ou_key:  Scope การค้นหา
+        limit:   จำนวนที่แสดง (max 500)
+    """
+    base, err = _resolve_ou(ou_key)
+    if err: return err
+    field_list, ferr = _resolve_cols(columns, _USER_PRESETS)
+    if ferr: return ferr
+
+    # Escape query for LDAP safety
+    sq = q.replace("(", r"\28").replace(")", r"\29").replace("*", r"\2a")
+    ldap_filter = (
+        f"(|(sAMAccountName=*{sq}*)(displayName=*{sq}*)(mail=*{sq}*)"
+        f"(department=*{sq}*)(telephoneNumber=*{sq}*)(mobile=*{sq}*)"
+        f"(title=*{sq}*)(company=*{sq}*))"
+    )
+    
+    try:
+        # ใช้ extra_ldap_filter เพื่อ push-down ค้นหาลง LDAP โดยตรง
+        rows = _build_users(base, extra_ldap_filter=ldap_filter)
+        
+        total_matched = len(rows)
+        # Slicing for pagination
+        paged_rows = rows[offset : offset + limit]
+        
+        return _wrap(_select_fields(paged_rows, field_list), limit, total_matched, offset)
+    except Exception as e:
+        return f"Error: {e}"
+
+@router.tool()
 def get_users(
     columns: str  = "identity",
     where:   str  = "",
     ou_key:  str  = "all",
     limit:   int  = 200,
+    offset:  int  = 0,
+    sort_by: str  = "",
     member_of_dn: str | None = None,
     thorough_logon: bool = False,
 ) -> str:
     """ดึงข้อมูล User จาก Active Directory (Read-Only)
     
     Args:
-        columns: Preset (min | identity | contact_info | address | account | exchange | groups | full) 
-                 หรือระบุชื่อ field เช่น "username,email"
-        where:   เงื่อนไขกรองข้อมูล *แนะนำใช้ Friendly Key* (Key: username, display_name, first_name, last_name, email, department, company)
-                 - ตัวอย่าง 1: "username=wajeepradit.p"
-                 - ตัวอย่าง 2: "username_contains=wajeepradit, department=IT"
-        ou_key:  รหัส OU เพื่อจำกัดขอบเขตการค้นหา (default "all" แนะนำ เพื่อค้นหาทั่วทั้งบริษัท)
-        limit:   1-2000 (default 200)
+        columns: Preset หรือระบุชื่อ field
+        where:   เงื่อนไขกรอง e.g. "department=IT" | "last_logon_days=30..90"
+        ou_key:  รหัส OU
+        limit:   จำนวน record ต่อหน้า (default 200)
+        offset:  จุดเริ่มต้น (สำหรับ pagination หน้า 2, 3, ...)
+        sort_by: ชื่อ field ที่ต้องการเรียง (e.g. "username", "-last_logon" สำหรับ DESC)
+        thorough_logon: ถ้าเป็น True จะไล่เช็ค Last Logon จากทุก DC (ช้าลงแต่แม่นยำ)
     """
     base, err = _resolve_ou(ou_key)
-    if err:
-        return err
+    if err: return err
     field_list, ferr = _resolve_cols(columns, _USER_PRESETS)
-    if ferr:
-        return ferr
+    if ferr: return ferr
+    
     try:
         f = _parse_where(where)
         rows = _build_users(base, member_of_dn=member_of_dn, where_f=f)
         
-        if thorough_logon:
-            for r in rows:
-                latest = _get_latest_last_logon(r["distinguished_name"])
-                if latest:
-                    r["last_logon"] = latest
-                    r["_last_logon_days"] = _days_ago(latest)
-
         if f:
             rows = _apply_filter(rows, f)
-        rows  = rows[:max(1, min(limit, 2000))]
-        return _json(_select_fields(rows, field_list))
+            
+        total_matched = len(rows)
+
+        if thorough_logon:
+            # ทำเฉพาะชุดที่จะ return เพื่อประหยัดเวลา
+            # แต่ถ้า sort_by last_logon ต้องทำทั้งหมด!
+            if "last_logon" in sort_by:
+                for r in rows:
+                    latest = _get_latest_last_logon(r["distinguished_name"])
+                    if latest:
+                        r["last_logon"] = latest
+                        r["_last_logon_days"] = _days_ago(latest)
+            else:
+                # เดี๋ยวค่อยทำหลัง slice หรือ? ไม่ได้ เพราะ slice คือ pagination
+                # ถ้า user อยากได้ last logon จริงๆ มักจะกรองมาก่อนแล้ว
+                for r in rows: # ทำทั้งหมดไปก่อน (parallel ช่วยอยู่)
+                     latest = _get_latest_last_logon(r["distinguished_name"])
+                     if latest:
+                         r["last_logon"] = latest
+                         r["_last_logon_days"] = _days_ago(latest)
+
+        # Sorting
+        if sort_by:
+            reverse = sort_by.startswith("-")
+            key = sort_by.lstrip("-")
+            # Handle None values in sort
+            rows.sort(key=lambda r: (r.get(key) is None, r.get(key) or ""), reverse=reverse)
+
+        # Pagination
+        paged_rows = rows[offset : offset + limit]
+        
+        return _wrap(_select_fields(paged_rows, field_list), limit, total_matched, offset)
     except LDAPException as e:
         return f"LDAP Error: {e}"
 
@@ -1130,26 +1200,24 @@ def get_computers(
     where:   str  = "",
     ou_key:  str  = "all",
     limit:   int  = 200,
+    offset:  int  = 0,
+    sort_by: str  = "",
     member_of_dn: str | None = None,
     thorough_logon: bool = False,
 ) -> str:
-    """ดึงข้อมูล Computer จาก Active Directory (Read-Only)
-    
-    Args:
-        columns: Preset (min | identity | status | groups | full) หรือระบุชื่อ field เช่น "name,dns_hostname"
-        where:   เงื่อนไขกรอง e.g. "operating_system_contains=Windows 11" (ใช้ Friendly Key เท่านั้น)
-        ou_key:  รหัส OU — default "all" เพื่อค้นหาทั่วทั้งบริษัท
-        limit:   1-2000
-    """
+    """ดึงข้อมูล Computer จาก Active Directory (Read-Only)"""
     base, err = _resolve_ou(ou_key)
-    if err:
-        return err
+    if err: return err
     field_list, ferr = _resolve_cols(columns, _COMPUTER_PRESETS)
-    if ferr:
-        return ferr
+    if ferr: return ferr
     try:
         f = _parse_where(where)
         rows = _build_computers(base, member_of_dn=member_of_dn, where_f=f)
+
+        if f:
+            rows = _apply_filter(rows, f)
+        
+        total_matched = len(rows)
 
         if thorough_logon:
             for r in rows:
@@ -1158,20 +1226,23 @@ def get_computers(
                     r["last_logon"] = latest
                     r["_last_logon_days"] = _days_ago(latest)
 
-        if f:
-            rows = _apply_filter(rows, f)
-        rows = rows[:max(1, min(limit, 2000))]
-        return _json(_select_fields(rows, field_list))
+        if sort_by:
+            reverse = sort_by.startswith("-")
+            key = sort_by.lstrip("-")
+            rows.sort(key=lambda r: (r.get(key) is None, r.get(key) or ""), reverse=reverse)
+
+        paged_rows = rows[offset : offset + limit]
+        return _wrap(_select_fields(paged_rows, field_list), limit, total_matched, offset)
     except LDAPException as e:
         return f"LDAP Error: {e}"
 
 @router.tool()
-def get_gpos(limit: int = 500) -> str:
+def get_gpos(limit: int = 500, offset: int = 0, sort_by: str = "") -> str:
     """List all Group Policy Objects (GPOs) in the domain."""
     base = f"CN=Policies,CN=System,{_AD_BASE_DN}"
     attrs = ["displayName", "whenCreated", "whenChanged", "gPCFileSysPath"]
     try:
-        raw = _fetch(base, "(objectClass=groupPolicyContainer)", attrs, limit=limit)
+        raw = _fetch(base, "(objectClass=groupPolicyContainer)", attrs, limit=5000)
         results = []
         for a in raw:
             results.append({
@@ -1180,7 +1251,15 @@ def get_gpos(limit: int = 500) -> str:
                 "modification_date": _attr(a, "whenChanged"),
                 "sysvol_path": _attr(a, "gPCFileSysPath"),
             })
-        return _json(results)
+        
+        total_matched = len(results)
+        if sort_by:
+            reverse = sort_by.startswith("-")
+            key = sort_by.lstrip("-")
+            results.sort(key=lambda r: (r.get(key) is None, r.get(key) or ""), reverse=reverse)
+            
+        paged_rows = results[offset : offset + limit]
+        return _wrap(paged_rows, limit, total_matched, offset)
     except Exception as e:
         return f"Error: {e}"
 
@@ -1234,28 +1313,28 @@ def get_contacts(
     where:   str  = "",
     ou_key:  str  = "all",
     limit:   int  = 200,
+    offset:  int  = 0,
+    sort_by: str  = "",
 ) -> str:
-    """ดึงข้อมูล Contact (External) จาก Active Directory (Read-Only)
-    
-    Args:
-        columns: Preset (min | full) หรือระบุชื่อ field เช่น "name,email"
-        where:   เงื่อนไขกรอง e.g. "email_endswith=@vendor.com" (ใช้ Friendly Key)
-        ou_key:  รหัส OU — default "all" เพื่อค้นหาทั่วทั้งบริษัท
-        limit:   1-2000
-    """
+    """ดึงข้อมูล Contact (External) จาก Active Directory (Read-Only)"""
     base, err = _resolve_ou(ou_key)
-    if err:
-        return err
+    if err: return err
     field_list, ferr = _resolve_cols(columns, _CONTACT_PRESETS)
-    if ferr:
-        return ferr
+    if ferr: return ferr
     try:
         f = _parse_where(where)
         rows = _build_contacts(base, where_f=f)
         if f:
             rows = _apply_filter(rows, f)
-        rows = rows[:max(1, min(limit, 2000))]
-        return _json(_select_fields(rows, field_list))
+        
+        total_matched = len(rows)
+        if sort_by:
+            reverse = sort_by.startswith("-")
+            key = sort_by.lstrip("-")
+            rows.sort(key=lambda r: (r.get(key) is None, r.get(key) or ""), reverse=reverse)
+
+        paged_rows = rows[offset : offset + limit]
+        return _wrap(_select_fields(paged_rows, field_list), limit, total_matched, offset)
     except LDAPException as e:
         return f"LDAP Error: {e}"
 
@@ -1266,28 +1345,28 @@ def get_groups(
     where:   str  = "",
     ou_key:  str  = "all",
     limit:   int  = 200,
+    offset:  int  = 0,
+    sort_by: str  = "",
 ) -> str:
-    """ดึงข้อมูล Group จาก Active Directory (Read-Only)
-    
-    Args:
-        columns: Preset (min | members | full) หรือระบุชื่อ field เช่น "name,description"
-        where:   เงื่อนไขกรอง e.g. "name_contains=VPN, group_type=Security" (ใช้ Friendly Key)
-        ou_key:  รหัส OU — default "all" เพื่อค้นหาทั่วทั้งบริษัท
-        limit:   1-2000
-    """
+    """ดึงข้อมูล Group จาก Active Directory (Read-Only)"""
     base, err = _resolve_ou(ou_key)
-    if err:
-        return err
+    if err: return err
     field_list, ferr = _resolve_cols(columns, _GROUP_PRESETS)
-    if ferr:
-        return ferr
+    if ferr: return ferr
     try:
         f = _parse_where(where)
         rows = _build_groups(base, where_f=f)
         if f:
             rows = _apply_filter(rows, f)
-        rows = rows[:max(1, min(limit, 2000))]
-        return _json(_select_fields(rows, field_list))
+        
+        total_matched = len(rows)
+        if sort_by:
+            reverse = sort_by.startswith("-")
+            key = sort_by.lstrip("-")
+            rows.sort(key=lambda r: (r.get(key) is None, r.get(key) or ""), reverse=reverse)
+
+        paged_rows = rows[offset : offset + limit]
+        return _wrap(_select_fields(paged_rows, field_list), limit, total_matched, offset)
     except LDAPException as e:
         return f"LDAP Error: {e}"
 
@@ -1298,27 +1377,27 @@ def get_ous(
     where:   str  = "",
     ou_key:  str  = "all",
     limit:   int  = 500,
+    offset:  int  = 0,
+    sort_by: str  = "",
 ) -> str:
-    """ดึงข้อมูล OU / Container จาก Active Directory (Read-Only)
-    
-    Args:
-        columns: Preset (min | full) หรือระบุชื่อ field เช่น "name,distinguished_name"
-        where:   เงื่อนไขกรอง e.g. "name_contains=Bangkok" (ใช้ Friendly Key)
-        ou_key:  รหัส OU ที่เป็น parent (default "all")
-        limit:   1-2000
-    """
+    """ดึงข้อมูล OU / Container จาก Active Directory (Read-Only)"""
     base, err = _resolve_ou(ou_key)
-    if err:
-        return err
+    if err: return err
     field_list, ferr = _resolve_cols(columns, _OU_PRESETS)
-    if ferr:
-        return ferr
+    if ferr: return ferr
     try:
         f = _parse_where(where)
         rows = _build_ous(base, where_f=f)
         if f:
             rows = _apply_filter(rows, f)
-        rows = rows[:max(1, min(limit, 2000))]
-        return _json(_select_fields(rows, field_list))
+        
+        total_matched = len(rows)
+        if sort_by:
+            reverse = sort_by.startswith("-")
+            key = sort_by.lstrip("-")
+            rows.sort(key=lambda r: (r.get(key) is None, r.get(key) or ""), reverse=reverse)
+
+        paged_rows = rows[offset : offset + limit]
+        return _wrap(_select_fields(paged_rows, field_list), limit, total_matched, offset)
     except LDAPException as e:
         return f"LDAP Error: {e}"

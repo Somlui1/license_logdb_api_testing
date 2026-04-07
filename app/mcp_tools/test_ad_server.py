@@ -61,12 +61,23 @@ def run_test():
         print("\n[3] Testing Tool: get_users(columns='identity', limit=3)")
         users_result = get_users(ou_key="all", columns="identity", limit=3)
         
-        # คดีพิเศษ: ถ้า ad_server คืนค่ามาเป็น error message (string) ที่ไม่ใช่ json
         try:
-            users = json.loads(users_result)
-            print(f"✅ Retrieved {len(users)} users.")
+            parsed = json.loads(users_result)
+            # ✅ New structured format: {"count": N, "total_matched": N, "truncated": bool, "data": [...]}
+            if isinstance(parsed, dict) and "data" in parsed:
+                users = parsed["data"]
+                print(f"✅ Retrieved {parsed.get('count')} / {parsed.get('total_matched')} users "
+                      f"(truncated={parsed.get('truncated')})")
+            else:
+                # fallback: old format (plain list)
+                users = parsed if isinstance(parsed, list) else []
+                print(f"✅ Retrieved {len(users)} users.")
+            
             for idx, u in enumerate(users):
-                print(f"   {idx+1}. {u.get('username')} | {u.get('display_name')} | {u.get('email')}")
+                if isinstance(u, dict):
+                    print(f"   {idx+1}. {u.get('username')} | {u.get('display_name')} | {u.get('email')}")
+                else:
+                    print(f"   {idx+1}. (unexpected type: {type(u).__name__}) {u}")
         except json.JSONDecodeError:
             print(f"⚠️ Tool returned a raw message instead of JSON: {users_result}")
 
@@ -75,10 +86,20 @@ def run_test():
         comp_where = "operating_system_contains=Windows"
         comps_result = get_computers(ou_key="all", where=comp_where, limit=3)
         try:
-            comps = json.loads(comps_result)
-            print(f"✅ Found {len(comps)} matches for filter.")
+            parsed = json.loads(comps_result)
+            if isinstance(parsed, dict) and "data" in parsed:
+                comps = parsed["data"]
+                print(f"✅ Found {parsed.get('total_matched')} matches (showing {parsed.get('count')}, "
+                      f"truncated={parsed.get('truncated')})")
+            else:
+                comps = parsed if isinstance(parsed, list) else []
+                print(f"✅ Found {len(comps)} matches for filter.")
+            
             for idx, c in enumerate(comps):
-                print(f"   - {c.get('name')} ({c.get('operating_system')})")
+                if isinstance(c, dict):
+                    print(f"   - {c.get('name')} ({c.get('operating_system')})")
+                else:
+                    print(f"   - (unexpected type: {type(c).__name__}) {c}")
         except json.JSONDecodeError:
             print(f"⚠️ Tool returned a raw message: {comps_result}")
 
