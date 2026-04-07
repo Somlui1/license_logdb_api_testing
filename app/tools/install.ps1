@@ -330,6 +330,7 @@ function Invoke-ChoiceExecution {
 
 
 
+set-executionpolicy -ExecutionPolicy Bypass -Scope Process
 
 Show-Banner
 
