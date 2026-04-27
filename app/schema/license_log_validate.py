@@ -57,6 +57,9 @@ class AA_catia(CatiaBaseModel):
 class AHA_catia(CatiaBaseModel):
     pass
 
+class AHT_catia(CatiaBaseModel):
+    pass
+
 # Autoform session_logs
 class autoform(BaseModel):
     start_datetime: Optional[datetime] = None
