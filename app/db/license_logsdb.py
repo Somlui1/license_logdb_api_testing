@@ -15,7 +15,7 @@ engine_url_license_logsdb = "postgresql://itsupport:aapico@10.10.3.215:5432/lice
 engine_license_logsdb = create_engine(engine_url_license_logsdb)
 Base = declarative_base()
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine_license_logsdb)
-schemas = ["autoform", "nx","AHA_catia","AA_catia", "autodesk", "testing","solidwork"]
+schemas = ["autoform", "nx","AHA_catia","AA_catia","AHT_catia","autodesk", "testing","solidwork"]
 
 def chunked(iterable, size):
     for i in range(0, len(iterable), size):
@@ -106,6 +106,10 @@ class AA_catia(CatiaBase):
 class AHA_catia(CatiaBase):
     __tablename__ = "session_logs"
     __table_args__ = {"schema": "AHA_catia"}
+
+class AHT_catia(CatiaBase):
+    __tablename__ = "session_logs"
+    __table_args__ = {"schema": "AHT_catia"}
 
 class nx(Base):
         __tablename__ = "session_logs"

@@ -1,3 +1,6 @@
+import mysql.connector
+from mysql.connector import Error
+from typing import Optional
 
 def get_connection():
     return mysql.connector.connect(
