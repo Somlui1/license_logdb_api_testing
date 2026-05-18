@@ -160,7 +160,18 @@ def get_all_profiles(access_token: str, group_id: int) -> list:
         raise HTTPException(status_code=502, detail={"step": "list_profiles", "error": "เกิดข้อผิดพลาดในการดึง Profile List", "server_msg": error_detail})
 
 
-def generate_vocher(access_token: str, group_id: int, profile_id: str, quantity: int, user_group_id: int) -> dict:
+def generate_vocher(
+    access_token: str, 
+    group_id: int, 
+    profile_id: str, 
+    quantity: int, 
+    user_group_id: int,
+    first_name: str = None,
+    last_name: str = None,
+    email: str = None,
+    phone: str = None,
+    comment: str = None
+) -> dict:
     url = f"https://cloud-as.ruijienetworks.com/service/api/open/auth/voucher/create/{group_id}"
     headers = {"Content-Type": "application/json"}
     query_params = {"access_token": access_token}
@@ -169,6 +180,17 @@ def generate_vocher(access_token: str, group_id: int, profile_id: str, quantity:
         "profile": str(profile_id), # แปลงเป็น string ป้องกัน Error 
         "userGroupId": user_group_id,
     }
+
+    if first_name is not None:
+        payload["firstName"] = first_name
+    if last_name is not None:
+        payload["lastName"] = last_name
+    if email is not None:
+        payload["email"] = email
+    if phone is not None:
+        payload["phone"] = phone
+    if comment is not None:
+        payload["comment"] = comment
     
     try:
         response = requests.post(url, headers=headers, params=query_params, json=payload)
@@ -187,7 +209,9 @@ def generate_vocher(access_token: str, group_id: int, profile_id: str, quantity:
 
 
 def create_voucher_endpoint(
-        groupname: str, profile_name: str, quantity: int
+        groupname: str, profile_name: str, quantity: int,
+        first_name: str = None, last_name: str = None,
+        email: str = None, phone: str = None, comment: str = None
     ):
         """
         API สำหรับสร้าง Voucher โดยส่ง Parameter ผ่าน Query URL
@@ -223,7 +247,12 @@ def create_voucher_endpoint(
             group_id=network_group_id,
             profile_id=profile_id,
             quantity=quantity,
-            user_group_id=user_group_id
+            user_group_id=user_group_id,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            phone=phone,
+            comment=comment
         )
          
         list_ticket = []

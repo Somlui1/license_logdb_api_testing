@@ -270,7 +270,7 @@ async def generate_ticket_preview():
     - วาง JSON → กด Generate → เปิด HTML ใน Tab ใหม่
     """
     try:
-        template = jinja_env.get_template("new_vocher_portal.html")
+        template = jinja_env.get_template("vocher_portal_application.html")
         html_content = template.render()
         return HTMLResponse(content=html_content)
     except Exception as e:
@@ -285,6 +285,11 @@ class VoucherRequest(BaseModel):
     groupname: str = "AH"
     profile_name: str = "AAPICO_Day"
     quantity: int = 1
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    comment: Optional[str] = None
 
 
 @SOS.post("/generate-voucher")
@@ -298,6 +303,11 @@ async def generate_voucher(request: VoucherRequest):
         groupname=request.groupname,
         profile_name=request.profile_name,
         quantity=request.quantity,
+        first_name=request.first_name,
+        last_name=request.last_name,
+        email=request.email,
+        phone=request.phone,
+        comment=request.comment
     )
     # ดึง voucher list จาก Ruijie response
     return result
