@@ -173,37 +173,23 @@
             <form class="flex flex-col gap-md" onsubmit="event.preventDefault(); handleLogin();">
                 <div class="flex flex-col gap-base">
                     <label class="font-label-sm text-label-sm uppercase tracking-widest text-white/70 ml-0"
-                        for="username">Username</label>
+                        for="username">Username / Email</label>
                     <input
                         class="bg-white text-black font-body-md px-sm py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all duration-300 w-full rounded-none"
-                        id="username" placeholder="Enter username" type="text" required />
+                        id="username" placeholder="Enter identification" type="text" required />
                 </div>
                 <div class="flex flex-col gap-base">
                     <label class="font-label-sm text-label-sm uppercase tracking-widest text-white/70 ml-0"
                         for="password">Password</label>
                     <input
                         class="bg-white text-black font-body-md px-sm py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all duration-300 w-full rounded-none"
-                        id="password" placeholder="Enter password" type="password" required />
+                        id="password" placeholder="Enter credential sequence" type="password" required />
                 </div>
-                <div class="flex flex-col gap-base">
-                    <label class="font-label-sm text-label-sm uppercase tracking-widest text-white/70 ml-0"
-                        for="loginDomain">Domain</label>
-                    <select
-                        class="bg-white text-black font-body-md px-sm py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all duration-300 w-full rounded-none"
-                        id="loginDomain" required>
-                        <option value="">Loading Domains...</option>
-                    </select>
-                </div>
-                <button id="btnLogin" type="submit"
+                <button type="submit"
                     class="mt-sm bg-aapico-green text-black font-label-md text-label-md uppercase tracking-wider font-bold py-3 w-full rounded-none hover:opacity-90 transition-all duration-300 flex justify-center items-center gap-xs">
                     SIGN IN
                     <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </button>
-                <div id="loginError"
-                    class="hidden mt-xs text-red-400 font-body-md text-sm bg-red-900/30 border border-red-500/40 px-sm py-2 flex items-center gap-xs">
-                    <span class="material-symbols-outlined text-[16px]">error</span>
-                    <span id="loginErrorText"></span>
-                </div>
             </form>
             <!-- Links -->
             <div class="flex justify-between items-center border-t border-white/20 pt-sm mt-sm">
@@ -336,149 +322,42 @@
     <script>
         const API_BASE = window.location.port === '5500' ? 'http://127.0.0.1:8000' : '';
 
-        // ── Token helpers ──────────────────────────────────────────────
-        function getToken() { return sessionStorage.getItem('aapico_token'); }
-        function setToken(t) { sessionStorage.setItem('aapico_token', t); }
-        function clearToken() { sessionStorage.removeItem('aapico_token'); }
-        function authHeaders() {
-            const t = getToken();
-            return t ? { 'Authorization': 'Bearer ' + t } : {};
-        }
-
-        // ── Check Auth on Load & Fetch Domains ────────────────────────
-        window.addEventListener('DOMContentLoaded', async () => {
-            fetchLoginDomains();
-
-            const token = getToken();
-            if (!token) return;
-
-            try {
-                const res = await fetch(API_BASE + '/auth/verify', {
-                    headers: authHeaders()
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    showVoucherView(data);
-                } else {
-                    clearToken();
-                }
-            } catch (e) {
-                clearToken();
+        // Check Auth Status on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            if (sessionStorage.getItem('aapico_auth') === 'true') {
+                showVoucherView();
             }
         });
 
-        // ── Fetch Available Domains ───────────────────────────────────
-        async function fetchLoginDomains() {
-            try {
-                const domSelect = document.getElementById('loginDomain');
-                const res = await fetch(API_BASE + '/auth/domains');
-                const json = await res.json();
-                if (json.status === 'success') {
-                    domSelect.innerHTML = '';
-                    json.domains.forEach(d => {
-                        const opt = document.createElement('option');
-                        opt.value = d;
-                        opt.textContent = d;
-                        domSelect.appendChild(opt);
-                    });
-                } else {
-                    domSelect.innerHTML = '<option value="aapico.com">aapico.com</option>';
-                }
-            } catch (e) {
-                console.error("Failed to load domains: ", e);
-                const domSelect = document.getElementById('loginDomain');
-                if (domSelect) {
-                    domSelect.innerHTML = '<option value="aapico.com">aapico.com</option>';
-                }
-            }
-        }
-
-        // ── Login ──────────────────────────────────────────────────────
-        async function handleLogin() {
-            const usernameInput = document.getElementById('username').value.trim();
+        function handleLogin() {
+            const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value.trim();
-            const selectedDomain = document.getElementById('loginDomain').value;
-            const btn = document.getElementById('btnLogin');
-            const errBox = document.getElementById('loginError');
-            const errText = document.getElementById('loginErrorText');
 
-            errBox.classList.add('hidden');
-
-            if (!usernameInput || !pass || !selectedDomain) {
-                errText.textContent = 'Please enter username, password, and select a domain.';
-                errBox.classList.remove('hidden');
-                return;
-            }
-
-            // Construct username@domain
-            let user = usernameInput;
-            if (!user.includes('@')) {
-                user = usernameInput + '@' + selectedDomain;
-            }
-
-            btn.disabled = true;
-            btn.innerHTML = '<div class="loader"></div> Authenticating...';
-
-            try {
-                const res = await fetch(API_BASE + '/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: user, password: pass })
-                });
-
-                if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.detail || 'Login failed');
-                }
-
-                const data = await res.json();
-                setToken(data.token);
-                showVoucherView(data);
-            } catch (e) {
-                errText.textContent = e.message;
-                errBox.classList.remove('hidden');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'SIGN IN <span class="material-symbols-outlined text-[18px]">arrow_forward</span>';
+            if (user && pass) {
+                // Mock authentication success
+                sessionStorage.setItem('aapico_auth', 'true');
+                showVoucherView();
+            } else {
+                alert('Please enter both username and password.');
             }
         }
 
-        // ── Logout ─────────────────────────────────────────────────────
         function handleLogout() {
-            clearToken();
+            sessionStorage.removeItem('aapico_auth');
             document.getElementById('voucherView').classList.add('hidden');
             document.getElementById('loginView').classList.remove('hidden');
             document.getElementById('navLogoutBtn').classList.add('hidden');
             document.getElementById('navPortalBtn').classList.remove('hidden');
-            document.getElementById('loginError').classList.add('hidden');
+            // Reset forms
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
-            document.getElementById('firstName').value = '';
-            document.getElementById('lastName').value = '';
-            document.getElementById('email').value = '';
         }
 
-        // ── Show Voucher View ──────────────────────────────────────────
-        function showVoucherView(userInfo) {
+        function showVoucherView() {
             document.getElementById('loginView').classList.add('hidden');
             document.getElementById('voucherView').classList.remove('hidden');
             document.getElementById('navPortalBtn').classList.add('hidden');
             document.getElementById('navLogoutBtn').classList.remove('hidden');
-
-            if (userInfo) {
-                if (userInfo.first_name) {
-                    document.getElementById('firstName').value = userInfo.first_name;
-                }
-                if (userInfo.last_name) {
-                    document.getElementById('lastName').value = userInfo.last_name;
-                }
-                // Auto-fill email format: username@domain.com
-                if (userInfo.username && userInfo.domain) {
-                    document.getElementById('email').value = userInfo.username + '@' + userInfo.domain;
-                } else if (userInfo.email) {
-                    document.getElementById('email').value = userInfo.email;
-                }
-            }
 
             const groupSelect = document.getElementById('groupname');
             if (groupSelect && groupSelect.options.length <= 1) {
@@ -486,18 +365,13 @@
             }
         }
 
-        // ── Fetch Groups (Protected) ──────────────────────────────────
         async function fetchGroups() {
             try {
                 const groupSelect = document.getElementById('groupname');
                 groupSelect.innerHTML = '<option value="">Loading Groups...</option>';
-                const res = await fetch(API_BASE + '/SOS/wifi/groups', {
-                    headers: authHeaders()
-                });
-
-                if (res.status === 401) { handleLogout(); return; }
-
+                const res = await fetch(API_BASE + '/SOS/wifi/groups');
                 const json = await res.json();
+
                 if (json.status === 'success') {
                     groupSelect.innerHTML = '<option value="">Select a Group</option>';
                     json.data.forEach(g => {
@@ -514,7 +388,6 @@
             }
         }
 
-        // ── Fetch Profiles (Protected) ────────────────────────────────
         async function fetchProfiles() {
             const groupSelect = document.getElementById('groupname');
             const profileSelect = document.getElementById('profile_name');
@@ -530,13 +403,9 @@
             try {
                 profileSelect.innerHTML = '<option value="">Loading Profiles...</option>';
                 profileSelect.disabled = true;
-                const res = await fetch(API_BASE + `/SOS/wifi/groups/${groupname}/profiles`, {
-                    headers: authHeaders()
-                });
-
-                if (res.status === 401) { handleLogout(); return; }
-
+                const res = await fetch(API_BASE + `/SOS/wifi/groups/${groupname}/profiles`);
                 const json = await res.json();
+
                 if (json.status === 'success') {
                     profileSelect.innerHTML = '<option value="">Select a Profile</option>';
                     json.data.forEach(p => {
@@ -555,10 +424,10 @@
             }
         }
 
-        // ── Process Voucher (Protected) ───────────────────────────────
         async function processVoucher() {
             const btn = document.getElementById('btnGenerate');
 
+            // Read Fields
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
             const email = document.getElementById('email').value.trim();
@@ -575,40 +444,24 @@
 
             btn.disabled = true;
 
-            // Open the print window immediately to bypass popup blockers
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) {
-                showStatus('Popup blocked. Please allow popups for this site.', 'error');
-                btn.disabled = false;
-                return;
-            }
-
-            printWindow.document.write(`
-                <html lang="en">
-                <head><title>Generating Voucher...</title>
-                <style>
-                    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f5f5f5; }
-                    h2 { color: #1d366d; }
-                    .loader { border: 4px solid #ddd; border-top: 4px solid #00a150; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-top: 20px;}
-                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                </style></head>
-                <body><h2>Processing your request...</h2><p>Communicating with Ruijie Cloud</p><div class="loader"></div></body>
-                </html>
-            `);
-
             try {
+                // Step 1: Create vouchers via Ruijie Cloud API
                 showStatus('Communicating with Ruijie Cloud...', 'loading');
                 const voucherRes = await fetch(API_BASE + '/SOS/generate-voucher', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        groupname, profile_name, quantity,
-                        first_name: firstName, last_name: lastName,
-                        email: email, phone: phone, comment: comment
+                        groupname,
+                        profile_name,
+                        quantity,
+                        first_name: firstName,
+                        last_name: lastName,
+                        email: email,
+                        phone: phone,
+                        comment: comment
                     })
                 });
 
-                if (voucherRes.status === 401) { handleLogout(); printWindow.close(); return; }
                 if (!voucherRes.ok) {
                     const errBody = await voucherRes.text();
                     throw new Error('Voucher API failed: ' + errBody);
@@ -616,46 +469,53 @@
 
                 const voucherJson = await voucherRes.json();
                 const tickets = voucherJson.data;
-                if (!tickets || tickets.length === 0) throw new Error('No voucher data returned from API.');
 
-                showStatus('Tickets generated (' + tickets.length + '). Rendering layout...', 'loading');
-                const ticketPayload = tickets.map(t => ({
-                    voucher_code: t.voucher_code,
-                    profile_name: t.profile_name,
-                    concurrent_devices: t.concurrent_devices || 1,
-                    period: t.period_hours || '1Days',
-                    maximum_download_rate: t.maximum_download_rate_mbps || '20Mbps'
-                }));
+                if (!tickets || tickets.length === 0) {
+                    throw new Error('No voucher data returned from API.');
+                }
 
-                const ticketRes = await fetch(API_BASE + '/SOS/generate-ticket', {
+                // Step 2: Convert to PDF via Chromium headless
+                showStatus('Tickets generated (' + tickets.length + '). Converting to PDF...', 'loading');
+                const ticketPayload = tickets.map(function (t) {
+                    return {
+                        voucher_code: t.voucher_code,
+                        profile_name: t.profile_name,
+                        concurrent_devices: t.concurrent_devices || 1,
+                        period: t.period_hours || '1Days',
+                        maximum_download_rate: t.maximum_download_rate_mbps || '20Mbps'
+                    };
+                });
+
+                const pdfRes = await fetch(API_BASE + '/SOS/generate-ticket/pdf', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(ticketPayload)
                 });
 
-                if (ticketRes.status === 401) { handleLogout(); printWindow.close(); return; }
-                if (!ticketRes.ok) {
-                    const errBody = await ticketRes.text();
-                    throw new Error('Ticket render failed: ' + errBody);
+                if (!pdfRes.ok) {
+                    const errBody = await pdfRes.text();
+                    throw new Error('PDF generation failed: ' + errBody);
                 }
 
-                const html = await ticketRes.text();
-                printWindow.document.open();
-                printWindow.document.write(html);
-                printWindow.document.close();
+                // Step 3: Download the PDF file
+                const blob = await pdfRes.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'voucher.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
 
-                showStatus('Operation successful. Voucher is ready to print.', 'success');
+                showStatus('Operation successful. PDF downloaded.', 'success');
             } catch (e) {
                 showStatus(e.message, 'error');
-                printWindow.document.open();
-                printWindow.document.write('<div style="font-family:sans-serif; text-align:center; margin-top:50px; color:#93000a;"><h2>Error Generating Voucher</h2><p>' + e.message + '</p></div>');
-                printWindow.document.close();
             } finally {
                 btn.disabled = false;
             }
         }
 
-        // ── Status Display ─────────────────────────────────────────────
         function showStatus(message, type) {
             const box = document.getElementById('statusBox');
             const icon = document.getElementById('statusIcon');

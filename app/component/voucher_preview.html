@@ -89,12 +89,12 @@
 <body>
     <div class="container">
         <h1>🎫 Voucher Ticket Generator</h1>
-        <p>วาง JSON Array ของ ticket แล้วกด Generate เพื่อเปิด HTML ใน Tab ใหม่</p>
+        <p>วาง JSON Array ของ ticket แล้วกด Generate เพื่อดาวน์โหลด PDF</p>
         <textarea id="jsonInput">[
   {"voucher_code": "abc123", "profile_name": "AAPICO_Day", "concurrent_devices": 1, "period": "1Days", "maximum_download_rate": "20Mbps"},
   {"voucher_code": "xyz789", "profile_name": "AAPICO_Day", "concurrent_devices": 1, "period": "7Days", "maximum_download_rate": "50Mbps"}
 ]</textarea>
-        <button onclick="generate()">🖨️ Generate & Print</button>
+        <button onclick="generate()">📥 Generate & Download PDF</button>
         <div class="status" id="status"></div>
     </div>
     <script>
@@ -103,18 +103,27 @@
             const input = document.getElementById('jsonInput').value;
             try {
                 const data = JSON.parse(input);
-                status.textContent = '⏳ Generating...';
-                const res = await fetch('/SOS/generate-ticket', {
+                status.textContent = '⏳ Generating PDF...';
+                const res = await fetch('/SOS/generate-ticket/pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-                if (!res.ok) throw new Error(await res.text());
-                const html = await res.text();
-                const win = window.open('', '_blank');
-                win.document.write(html);
-                win.document.close();
-                status.textContent = '✅ Opened in new tab!';
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(errText);
+                }
+                // รับ PDF เป็น blob แล้วสร้าง download link
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'voucher.pdf';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                status.textContent = '✅ PDF downloaded!';
             } catch (e) {
                 status.textContent = '❌ ' + e.message;
             }

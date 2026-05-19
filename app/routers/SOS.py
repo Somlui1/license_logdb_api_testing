@@ -1,11 +1,12 @@
 import os
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request, Depends
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import date, datetime
 from jinja2 import Environment, FileSystemLoader
 from app.service import SOS_fn
+from helper.converttopdf import html_to_pdf
 from app.service.SOS_sla import SLACalculator
 from app.service.vocher_wifi import (
     create_voucher_endpoint,
@@ -17,6 +18,7 @@ from app.service.vocher_wifi import (
 from app.db.SOS_holiday import Holiday
 from app.db.SOS_sla_cache import SLACache
 from fastapi.responses import JSONResponse
+from app.routers.auth import get_current_user
 
 # Jinja2 template setup
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "component")
@@ -182,7 +184,7 @@ async def get_sla_cache(
 # ==========================================
 
 @SOS.post("/generate-ticket", response_class=HTMLResponse)
-async def generate_ticket(tickets: List[TicketData]):
+async def generate_ticket(tickets: List[TicketData], user: dict = Depends(get_current_user)):
     """
     สร้าง HTML Voucher Ticket จาก JSON
     - รับ List ของ TicketData
@@ -206,6 +208,46 @@ async def generate_ticket(tickets: List[TicketData]):
         return HTMLResponse(content=html_content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template render error: {str(e)}")
+
+
+@SOS.post("/generate-ticket/pdf")
+async def generate_ticket_pdf(tickets: List[TicketData], user: dict = Depends(get_current_user)):
+    """
+    สร้าง PDF Voucher Ticket จาก JSON
+    - รับ List ของ TicketData
+    - Render เป็น HTML → แปลงเป็น PDF ผ่าน Chromium headless
+    - ส่งกลับเป็นไฟล์ PDF ดาวน์โหลดได้
+
+    Example Body:
+    ```json
+    [
+      {"voucher_code": "abc123", "profile_name": "AAPICO_Day", "concurrent_devices": 1, "period": "1Days", "maximum_download_rate": "20Mbps"}
+    ]
+    ```
+    """
+    if not tickets:
+        raise HTTPException(status_code=400, detail="กรุณาส่ง ticket อย่างน้อย 1 รายการ")
+
+    try:
+        # 1) Render HTML จาก Jinja2 template
+        template = jinja_env.get_template("voucher_template.html")
+        html_content = template.render(tickets=[t.model_dump() for t in tickets])
+
+        # 2) แปลง HTML → PDF ด้วย Chromium headless
+        pdf_bytes = html_to_pdf(html_content)
+
+        # 3) ส่ง PDF กลับเป็น downloadable file
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": "attachment; filename=voucher.pdf"
+            },
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=500, detail=f"Browser not found: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
 
 
 @SOS.get(
@@ -293,7 +335,7 @@ class VoucherRequest(BaseModel):
 
 
 @SOS.post("/generate-voucher")
-async def generate_voucher(request: VoucherRequest):
+async def generate_voucher(request: VoucherRequest, user: dict = Depends(get_current_user)):
     """
     สร้าง WiFi Voucher ผ่าน Ruijie Cloud API
     - เรียก create_voucher_endpoint เพื่อสร้าง voucher
@@ -333,7 +375,7 @@ async def generate_voucher(request: VoucherRequest):
 ```
 """,
 )
-async def list_wifi_groups():
+async def list_wifi_groups(user: dict = Depends(get_current_user)):
     """
     ดึง Network Groups ทั้งหมดจาก Ruijie Cloud
     """
@@ -376,7 +418,7 @@ GET /SOS/wifi/groups/AH/profiles
 ```
 """,
 )
-async def list_wifi_profiles(groupname: str):
+async def list_wifi_profiles(groupname: str, user: dict = Depends(get_current_user)):
     """
     ดึง WiFi Profile ทั้งหมดของ Group ที่ระบุ
     1. ดึง Access Token
