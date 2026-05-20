@@ -189,7 +189,7 @@
                     <label class="font-label-sm text-label-sm uppercase tracking-widest text-white/70 ml-0"
                         for="loginDomain">Domain</label>
                     <select
-                        class="bg-white text-black font-body-md px-sm py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all duration-300 w-full rounded-none"
+                        class="bg-white text-black font-body-md pl-sm pr-[40px] py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all duration-300 w-full rounded-none truncate"
                         id="loginDomain" required>
                         <option value="">Loading Domains...</option>
                     </select>
@@ -259,12 +259,12 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-md">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-md">
                     <div class="flex flex-col gap-base">
                         <label class="font-label-sm text-label-sm uppercase tracking-widest text-white/70"
                             for="groupname">Group</label>
                         <select
-                            class="bg-white text-black font-body-md px-sm py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all w-full cursor-pointer"
+                            class="bg-white text-black font-body-md pl-sm pr-[40px] py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all w-full cursor-pointer truncate"
                             id="groupname" onchange="fetchProfiles()">
                             <option value="">Select a Group</option>
                         </select>
@@ -273,7 +273,7 @@
                         <label class="font-label-sm text-label-sm uppercase tracking-widest text-white/70"
                             for="profile_name">Profile</label>
                         <select
-                            class="bg-white text-black font-body-md px-sm py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all w-full cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            class="bg-white text-black font-body-md pl-sm pr-[40px] py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all w-full cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed truncate"
                             id="profile_name" disabled>
                             <option value="">Select a Profile</option>
                         </select>
@@ -284,6 +284,22 @@
                         <input
                             class="bg-white text-black font-body-md px-sm py-3 border border-outline-variant focus:border-aapico-green focus:ring-1 focus:ring-aapico-green focus:outline-none transition-all w-full"
                             id="quantity" value="1" type="number" min="1" max="100" />
+                    </div>
+                    <div class="flex flex-col gap-base">
+                        <label class="font-label-sm text-label-sm uppercase tracking-widest text-white/70">Output Format</label>
+                        <div class="flex bg-white p-1 gap-1 border border-outline-variant">
+                            <!-- Option HTML Print -->
+                            <button type="button" id="opt_print" onclick="selectOutputFormat('print')" class="flex-1 py-2 flex items-center justify-center gap-2 transition-all focus:outline-none bg-aapico-green text-black font-bold">
+                                <span class="material-symbols-outlined text-[20px]">print</span>
+                                <span class="text-xs uppercase tracking-wider">HTML</span>
+                            </button>
+                            <!-- Option Download PDF -->
+                            <button type="button" id="opt_pdf" onclick="selectOutputFormat('pdf')" class="flex-1 py-2 flex items-center justify-center gap-2 transition-all focus:outline-none text-black/60 hover:bg-black/5">
+                                <span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+                                <span class="text-xs uppercase tracking-wider">PDF</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="output_format" value="print">
                     </div>
                 </div>
 
@@ -567,6 +583,7 @@
             const groupname = document.getElementById('groupname').value.trim();
             const profile_name = document.getElementById('profile_name').value.trim();
             const quantity = parseInt(document.getElementById('quantity').value);
+            const format = document.getElementById('output_format').value;
 
             if (!groupname || !profile_name || !quantity || quantity < 1) {
                 showStatus('Please fill all required fields.', 'error');
@@ -575,26 +592,28 @@
 
             btn.disabled = true;
 
-            // Open the print window immediately to bypass popup blockers
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) {
-                showStatus('Popup blocked. Please allow popups for this site.', 'error');
-                btn.disabled = false;
-                return;
+            // Open the print window immediately (only if print format chosen) to bypass popup blockers
+            let printWindow = null;
+            if (format === 'print') {
+                printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    showStatus('Popup blocked. Please allow popups for this site.', 'error');
+                    btn.disabled = false;
+                    return;
+                }
+                printWindow.document.write(`
+                    <html lang="en">
+                    <head><title>Generating Voucher...</title>
+                    <style>
+                        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f5f5f5; }
+                        h2 { color: #1d366d; }
+                        .loader { border: 4px solid #ddd; border-top: 4px solid #00a150; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-top: 20px;}
+                        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                    </style></head>
+                    <body><h2>Processing your request...</h2><p>Communicating with Ruijie Cloud</p><div class="loader"></div></body>
+                    </html>
+                `);
             }
-
-            printWindow.document.write(`
-                <html lang="en">
-                <head><title>Generating Voucher...</title>
-                <style>
-                    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f5f5f5; }
-                    h2 { color: #1d366d; }
-                    .loader { border: 4px solid #ddd; border-top: 4px solid #00a150; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-top: 20px;}
-                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                </style></head>
-                <body><h2>Processing your request...</h2><p>Communicating with Ruijie Cloud</p><div class="loader"></div></body>
-                </html>
-            `);
 
             try {
                 showStatus('Communicating with Ruijie Cloud...', 'loading');
@@ -608,7 +627,11 @@
                     })
                 });
 
-                if (voucherRes.status === 401) { handleLogout(); printWindow.close(); return; }
+                if (voucherRes.status === 401) { 
+                    handleLogout(); 
+                    if (printWindow) printWindow.close(); 
+                    return; 
+                }
                 if (!voucherRes.ok) {
                     const errBody = await voucherRes.text();
                     throw new Error('Voucher API failed: ' + errBody);
@@ -618,7 +641,7 @@
                 const tickets = voucherJson.data;
                 if (!tickets || tickets.length === 0) throw new Error('No voucher data returned from API.');
 
-                showStatus('Tickets generated (' + tickets.length + '). Rendering layout...', 'loading');
+                showStatus('Tickets generated (' + tickets.length + '). Processing layout...', 'loading');
                 const ticketPayload = tickets.map(t => ({
                     voucher_code: t.voucher_code,
                     profile_name: t.profile_name,
@@ -627,29 +650,59 @@
                     maximum_download_rate: t.maximum_download_rate_mbps || '20Mbps'
                 }));
 
-                const ticketRes = await fetch(API_BASE + '/SOS/generate-ticket', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-                    body: JSON.stringify(ticketPayload)
-                });
+                if (format === 'print') {
+                    // HTML Print Flow
+                    const ticketRes = await fetch(API_BASE + '/SOS/generate-ticket', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                        body: JSON.stringify(ticketPayload)
+                    });
 
-                if (ticketRes.status === 401) { handleLogout(); printWindow.close(); return; }
-                if (!ticketRes.ok) {
-                    const errBody = await ticketRes.text();
-                    throw new Error('Ticket render failed: ' + errBody);
+                    if (ticketRes.status === 401) { handleLogout(); printWindow.close(); return; }
+                    if (!ticketRes.ok) {
+                        const errBody = await ticketRes.text();
+                        throw new Error('Ticket render failed: ' + errBody);
+                    }
+
+                    const html = await ticketRes.text();
+                    printWindow.document.open();
+                    printWindow.document.write(html);
+                    printWindow.document.close();
+
+                    showStatus('Operation successful. Voucher is ready to print.', 'success');
+                } else {
+                    // PDF Download Flow
+                    const pdfRes = await fetch(API_BASE + '/SOS/generate-ticket/pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                        body: JSON.stringify(ticketPayload)
+                    });
+
+                    if (pdfRes.status === 401) { handleLogout(); return; }
+                    if (!pdfRes.ok) {
+                        const errBody = await pdfRes.text();
+                        throw new Error('PDF generation failed: ' + errBody);
+                    }
+
+                    const blob = await pdfRes.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'voucher.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showStatus('Operation successful. PDF downloaded.', 'success');
                 }
-
-                const html = await ticketRes.text();
-                printWindow.document.open();
-                printWindow.document.write(html);
-                printWindow.document.close();
-
-                showStatus('Operation successful. Voucher is ready to print.', 'success');
             } catch (e) {
                 showStatus(e.message, 'error');
-                printWindow.document.open();
-                printWindow.document.write('<div style="font-family:sans-serif; text-align:center; margin-top:50px; color:#93000a;"><h2>Error Generating Voucher</h2><p>' + e.message + '</p></div>');
-                printWindow.document.close();
+                if (printWindow) {
+                    printWindow.document.open();
+                    printWindow.document.write('<div style="font-family:sans-serif; text-align:center; margin-top:50px; color:#93000a;"><h2>Error Generating Voucher</h2><p>' + e.message + '</p></div>');
+                    printWindow.document.close();
+                }
             } finally {
                 btn.disabled = false;
             }
@@ -674,6 +727,20 @@
             } else if (type === 'error') {
                 text.className = 'font-body-md text-error font-bold';
                 icon.innerHTML = '<span class="material-symbols-outlined text-error">error</span>';
+            }
+        }
+
+        // ── Select Output Format ───────────────────────────────────────
+        function selectOutputFormat(format) {
+            document.getElementById('output_format').value = format;
+            const btnPrint = document.getElementById('opt_print');
+            const btnPdf = document.getElementById('opt_pdf');
+            if (format === 'print') {
+                btnPrint.className = "flex-1 py-2 flex items-center justify-center gap-2 transition-all focus:outline-none bg-aapico-green text-black font-bold";
+                btnPdf.className = "flex-1 py-2 flex items-center justify-center gap-2 transition-all focus:outline-none text-black/60 hover:bg-black/5";
+            } else {
+                btnPdf.className = "flex-1 py-2 flex items-center justify-center gap-2 transition-all focus:outline-none bg-aapico-green text-black font-bold";
+                btnPrint.className = "flex-1 py-2 flex items-center justify-center gap-2 transition-all focus:outline-none text-black/60 hover:bg-black/5";
             }
         }
     </script>
